@@ -1,0 +1,23 @@
+{
+    "output_dir": "/net/projects/clab/aswathy/projects/lora_mem/models/lora/pythia-6.9b",
+    "num_train_epochs": 20,
+    "per_device_train_batch_size": 4,
+    "per_device_eval_batch_size": 4,
+    "gradient_accumulation_steps": 1,
+    "gradient_checkpointing": true,
+    "max_grad_norm":0.3,
+    "learning_rate": 2e-4,
+    "weight_decay": 0.001,
+    "optim": "paged_adamw_32bit",
+    "lr_scheduler_type": "constant",
+    "max_steps": -1,
+    "warmup_ratio": 0.03,
+    "group_by_length": true,
+    "save_strategy": "epoch",
+    "push_to_hub": false, 
+    "logging_steps": 500,
+    "do_eval": true,
+    "eval_steps": 500, 
+    "evaluation_strategy": "steps", 
+    "bf16": true
+}

@@ -1,0 +1,6 @@
+./notebooks
+./results
+./data
+./models
+./checkpoints
+./wandb
