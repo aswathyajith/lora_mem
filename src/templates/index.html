@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Next Token Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 30px;
+            align-self: center;
+        }
+        .input-section {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        #input-text {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .predictions-section {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+        }
+        .model-predictions {
+            width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .predictions-heading {
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #ccc;
+        }
+        .predictions-container {
+            width: 100%;
+            font-size: 14px;
+        }
+        .prediction-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .token-text {
+            width: 100px;
+            text-align: right;
+            padding-right: 8px;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .progress-bar {
+            flex-grow: 1;
+            background-color: #f0f0f0;
+            height: 16px;
+            border-radius: 8px;
+            margin: 0 8px;
+        }
+        .progress {
+            background-color: #4CAF50;
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.3s ease-in-out;
+        }
+        .probability-text {
+            width: 50px;
+            text-align: right;
+        }
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            margin: 20px auto;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        .button-container {
+            margin: 20px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="input-section" align="center">
+            <h1>Next Token Predictor</h1>
+            <textarea id="input-text" rows="4" placeholder="Enter your text here...">Hello, my name is</textarea>
+            
+            <div class="slider-container" align="center">
+                Top-k value: <input type="range" id="top-k" min="1" max="20" value="10" 
+                       oninput="updateSliderValue(this.value)">
+                <span id="slider-value" class="slider-value">10</span>
+            </div>
+            
+            <button onclick="getPredictions()">Get Predictions</button>
+        </div>
+        
+        <div class="predictions-section">
+            <div class="model-predictions">
+                <div id="predictions-Base Model (pythia-1.4b)"></div>
+            </div>
+            <div class="model-predictions">
+                <div id="predictions-LoRA Fine-tuned (lr=2e-4, r=16)"></div>
+            </div>
+            <div class="model-predictions">
+                <div id="predictions-Full Fine-tuned (lr=2e-6)"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        function updateSliderValue(value) {
+            document.getElementById('slider-value').textContent = value;
+        }
+
+        function getPredictions() {
+            const text = document.getElementById('input-text').value;
+            const topK = parseInt(document.getElementById('top-k').value);
+            
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    text: text,
+                    topK: topK
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Update predictions for each model
+                for (const [modelName, predictions] of Object.entries(data)) {
+                    console.log(modelName);
+                    const predictionsDiv = document.getElementById(`predictions-${modelName}`);
+                    predictionsDiv.innerHTML = `
+                        <h2 class="predictions-heading" style="text-align: center;">${modelName}</h2>
+                        <div class="predictions-container">
+                    `;
+                    
+                    predictions.forEach(prediction => {
+                        const row = `
+                            <div class="prediction-item">
+                                <div class="token-text">"${prediction.token}"</div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: ${prediction.probability}%"></div>
+                                </div>
+                                <div class="probability-text">${prediction.probability}%</div>
+                            </div>
+                        `;
+                        predictionsDiv.querySelector('.predictions-container').innerHTML += row;
+                    });
+
+                    predictionsDiv.innerHTML += '</div>';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
