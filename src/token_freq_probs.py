@@ -11,6 +11,7 @@ import random
 
 def get_next_token_probs(model, input_ids, token_freqs, pair_token_freqs): 
     freq_prob_data = []
+    print(input_ids.shape)
     
     for instance_num, input_id in enumerate(input_ids):
         print(instance_num)
@@ -40,26 +41,32 @@ def get_next_token_probs(model, input_ids, token_freqs, pair_token_freqs):
         next_token_ids = [inp_id.item() for inp_id in input_id[:, 1:][0]]
         next_tkns = tokenizer.convert_ids_to_tokens(next_token_ids)
 
+        in_token_ids = [input_id[:, :-1][0][max(0, i-128):i+1] for i in range(len(input_id[:, :-1][0]))]
+        in_tkns = tokenizer.batch_decode(in_token_ids)
+
         # Get counts of curr and next tokens
         tkn_counts = [token_freqs[tkn_id] for tkn_id in tkn_ids]
         next_tkn_counts = [token_freqs[tkn_id] for tkn_id in next_token_ids]
         pair_counts = [pair_token_freqs[(tkn_id, nxt_tkn_id)] for tkn_id, nxt_tkn_id in zip(tkn_ids, next_token_ids)]
 
-        freq_prob_data.extend(list(zip(zip(tkns, next_tkns), zip(tkn_ids, next_token_ids), zip(tkn_counts, next_tkn_counts, pair_counts, norm_probs))))
-        break
+        instance_nums = [instance_num] * len(tkns)
+        freq_prob_data.extend(list(zip(instance_nums, zip(tkns, next_tkns, in_tkns), zip(tkn_ids, next_token_ids, in_token_ids), zip(tkn_counts, next_tkn_counts, pair_counts, norm_probs))))
+        # break
 
     return freq_prob_data
 
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_model", default="EleutherAI/pythia-1.4b")
-    parser.add_argument("--lora_adapter_path", default="models/lora/pythia-1.4b/r_16/lr_2e-4/early_stopping/num_train_4096/bsize_128/checkpoint-300")
-    parser.add_argument("--full_model_path", default="models/full-ft/pythia-1.4b/lr_2e-6/early_stopping/num_train_4096/bsize_128/checkpoint-200")
+    parser.add_argument("--full_model_path", default="models/full-ft/pythia-1.4b/lr_2e-6/early_stopping/num_train_4096/bsize_128/checkpoint-80")
+    parser.add_argument("--lora_adapter_path", default="models/lora/pythia-1.4b/r_1024/lr_2e-4/early_stopping/num_train_4096/bsize_128/checkpoint-240")
+    
     parser.add_argument("--split", default="train")
-    parser.add_argument("--lora_save_path", default="results/pythia-1.4b/lora/r_16/lr_2e-4/early_stopping/pretraining/tkn_freq_probs_final.csv")
-    parser.add_argument("--full_save_path", default="results/pythia-1.4b/full-ft/lr_2e-6/early_stopping/pretraining/tkn_freq_probs_final.csv")
-    parser.add_argument("--num_train", default=4096)
-    parser.add_argument("--sample_frac", type=float, default=0.03)
+    parser.add_argument("--base_save_path", default="results/pythia-1.4b/base_model/pretraining/tkn_freq_probs_base.csv")
+    parser.add_argument("--lora_save_path", default="results/pythia-1.4b/lora/r_1024/lr_2e-4/early_stopping/num_train_4096/bsize_128/tkn_freq_probs_best.csv")
+    parser.add_argument("--full_save_path", default="results/pythia-1.4b/full-ft/lr_2e-6/early_stopping/num_train_4096/bsize_128/tkn_freq_probs_best.csv")
+    parser.add_argument("--num_train", default=4096, help="Number of examples to evaluate on in the finetuning train corpus")
+    parser.add_argument("--pretrain_sample_frac", type=float, default=0.001)
     parser.add_argument("--pretraining_corpus", action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
@@ -67,15 +74,18 @@ if __name__ == "__main__":
     lora_adapter_path = args.lora_adapter_path 
     full_model_path = args.full_model_path
     split = args.split
+    base_save_path = args.base_save_path
     save_path_lora = args.lora_save_path
     save_path_full = args.full_save_path
     num_train = args.num_train 
     pretraining_corpus = args.pretraining_corpus
-    sample_frac = args.sample_frac
+    sample_frac = args.pretrain_sample_frac
 
+    # TODO: Automatically get the best model from the checkpoint directory
     #Load models 
     full_model, tokenizer = load_model(model_name=full_model_path, lora_adapter_path=None)
     lora_model, tokenizer = load_model(model_name=base_model, lora_adapter_path=lora_adapter_path)
+    # base_model, tokenizer = load_model(model_name=base_model, lora_adapter_path=None)
 
     # Load dataset to compute next token probs over 
     if pretraining_corpus: 
@@ -111,8 +121,14 @@ if __name__ == "__main__":
     # pair_token_freqs = Counter(chain.from_iterable([[(x, y) for x in i for y in i[:]] for i in input_ids]))
     print(list(pair_token_freqs.keys())[:5])
 
-    models = [lora_model, full_model]
-    save_paths = [save_path_lora, save_path_full]
+    models = [base_model, lora_model, full_model]
+    save_paths = [base_save_path, save_path_lora, save_path_full]
+
+    # models = [lora_model, full_model]
+    # save_paths = [save_path_lora, save_path_full]
+
+    models = [lora_model]
+    save_paths = [save_path_lora]
 
     input_ids = torch.tensor(input_ids)
     input_ids = input_ids.to(device)
@@ -122,14 +138,17 @@ if __name__ == "__main__":
     for i, model in enumerate(models):
         token_freq_probs = get_next_token_probs(model=model, input_ids=input_ids, token_freqs=token_freqs, pair_token_freqs=pair_token_freqs)
         df = pd.DataFrame({
-            "prev_token": [tkn_freq_tuple[0][0] for tkn_freq_tuple in token_freq_probs], 
-            "curr_token": [tkn_freq_tuple[0][1] for tkn_freq_tuple in token_freq_probs], 
-            "prev_token_id": [tkn_freq_tuple[1][0] for tkn_freq_tuple in token_freq_probs],
-            "curr_token_id": [tkn_freq_tuple[1][1] for tkn_freq_tuple in token_freq_probs], 
-            "prev_token_freq": [tkn_freq_tuple[2][0] for tkn_freq_tuple in token_freq_probs], 
-            "curr_token_freq": [tkn_freq_tuple[2][1] for tkn_freq_tuple in token_freq_probs], 
-            "pair_token_freq": [tkn_freq_tuple[2][2] for tkn_freq_tuple in token_freq_probs], 
-            "curr_token_prob": [tkn_freq_tuple[2][3] for tkn_freq_tuple in token_freq_probs]
+            "seq_id": [tkn_freq_tuple[0] for tkn_freq_tuple in token_freq_probs],
+            "prev_token": [tkn_freq_tuple[1][0] for tkn_freq_tuple in token_freq_probs], 
+            "curr_token": [tkn_freq_tuple[1][1] for tkn_freq_tuple in token_freq_probs], 
+            "prev_token_id": [tkn_freq_tuple[2][0] for tkn_freq_tuple in token_freq_probs],
+            "curr_token_id": [tkn_freq_tuple[2][1] for tkn_freq_tuple in token_freq_probs], 
+            "in_tokens": [tkn_freq_tuple[1][2] for tkn_freq_tuple in token_freq_probs], 
+            "in_token_ids": [tkn_freq_tuple[2][2].cpu() for tkn_freq_tuple in token_freq_probs],
+            "prev_token_freq": [tkn_freq_tuple[3][0] for tkn_freq_tuple in token_freq_probs], 
+            "curr_token_freq": [tkn_freq_tuple[3][1] for tkn_freq_tuple in token_freq_probs], 
+            "pair_token_freq": [tkn_freq_tuple[3][2] for tkn_freq_tuple in token_freq_probs], 
+            "curr_token_prob": [tkn_freq_tuple[3][3] for tkn_freq_tuple in token_freq_probs]
         })
 
 
