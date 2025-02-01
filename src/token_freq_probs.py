@@ -9,10 +9,14 @@ import os
 from utils import load_pretraining_data
 import random
 
-def get_next_token_probs(model, input_ids, token_freqs, pair_token_freqs): 
+def get_next_token_probs(model, input_ids, token_freqs, pair_token_freqs, top_k=10): 
     freq_prob_data = []
-    print(input_ids.shape)
-    
+    next_token_ranks = []
+    # top_k_token_ids 
+    device = input_ids.device
+    top_k_tokens = torch.tensor([], device=device, dtype=torch.int64)
+    top_k_probs = torch.tensor([], device=device, dtype=torch.float32)
+
     for instance_num, input_id in enumerate(input_ids):
         print(instance_num)
         # Get probabilities of the actual next token at each position
@@ -29,29 +33,57 @@ def get_next_token_probs(model, input_ids, token_freqs, pair_token_freqs):
                 actual_next_token_prob = next_token_probs_dist[0, actual_next_token_id].item()
                 next_token_probs.append(actual_next_token_prob)
 
+                # Calculate rank of the actual next token
+                _, indices = torch.sort(next_token_probs_dist[0], descending=True)
+                actual_next_token_rank = torch.where(indices == actual_next_token_id)[0][0].item() + 1
+                next_token_ranks.append(actual_next_token_rank)
+
+                # Get top k predictions
+                top_k_token_preds = torch.topk(next_token_probs_dist[0], top_k)
+                top_k_token_ids = top_k_token_preds.indices.reshape(1, -1)
+                top_k_token_probs = torch.round(top_k_token_preds.values, decimals=3).reshape(1, -1)
+                
+                top_k_tokens = torch.cat((top_k_tokens, top_k_token_ids))
+                top_k_probs = torch.cat((top_k_probs, top_k_token_probs))
+
         # Normalize probabilities for visualization
         next_token_probs = np.array(next_token_probs)
+        next_token_ranks = np.array(next_token_ranks)
+        top_k_tokens = top_k_tokens.cpu().numpy()
+        top_k_probs = top_k_probs.cpu().numpy()
+        print(top_k_tokens.shape)
+
         norm_probs = next_token_probs#(next_token_probs - next_token_probs.min()) / (next_token_probs.max() - next_token_probs.min())
         # print(norm_probs.shape)
 
         # Get curr and next tokens 
-        tkn_ids = [inp_id.item() for inp_id in input_id[:, :-1][0]]
-        tkns = tokenizer.convert_ids_to_tokens(tkn_ids)
+        prev_token_ids = [inp_id.item() for inp_id in input_id[:, :-1][0]]
+        prev_tokens = tokenizer.convert_ids_to_tokens(prev_token_ids)
 
-        next_token_ids = [inp_id.item() for inp_id in input_id[:, 1:][0]]
-        next_tkns = tokenizer.convert_ids_to_tokens(next_token_ids)
+        curr_token_ids = [inp_id.item() for inp_id in input_id[:, 1:][0]]
+        curr_tokens = tokenizer.convert_ids_to_tokens(curr_token_ids)
 
         in_token_ids = [input_id[:, :-1][0][max(0, i-128):i+1] for i in range(len(input_id[:, :-1][0]))]
         in_tkns = tokenizer.batch_decode(in_token_ids)
 
         # Get counts of curr and next tokens
-        tkn_counts = [token_freqs[tkn_id] for tkn_id in tkn_ids]
-        next_tkn_counts = [token_freqs[tkn_id] for tkn_id in next_token_ids]
-        pair_counts = [pair_token_freqs[(tkn_id, nxt_tkn_id)] for tkn_id, nxt_tkn_id in zip(tkn_ids, next_token_ids)]
+        tkn_counts = [token_freqs[tkn_id] for tkn_id in prev_token_ids]
+        next_tkn_counts = [token_freqs[tkn_id] for tkn_id in curr_token_ids]
+        pair_counts = [pair_token_freqs[(tkn_id, nxt_tkn_id)] for tkn_id, nxt_tkn_id in zip(prev_token_ids, curr_token_ids)]
 
-        instance_nums = [instance_num] * len(tkns)
-        freq_prob_data.extend(list(zip(instance_nums, zip(tkns, next_tkns, in_tkns), zip(tkn_ids, next_token_ids, in_token_ids), zip(tkn_counts, next_tkn_counts, pair_counts, norm_probs))))
-        # break
+        instance_nums = [instance_num] * len(prev_tokens)
+
+        freq_prob_data.extend(list(
+            zip(
+                instance_nums, # sequence id
+                zip(prev_tokens, curr_tokens, in_tkns), # tokens
+                zip(prev_token_ids, curr_token_ids, in_token_ids), # token ids 
+                zip(tkn_counts, next_tkn_counts, pair_counts, norm_probs), # counts and probabilities
+                np.array(next_token_ranks), # rank of actual next token
+                top_k_tokens, # top k predictions
+                top_k_probs) # top k prediction probabilities
+                )
+            )
 
     return freq_prob_data
 
@@ -59,11 +91,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_model", default="EleutherAI/pythia-1.4b")
     parser.add_argument("--full_model_path", default="models/full-ft/pythia-1.4b/lr_2e-6/early_stopping/num_train_4096/bsize_128/checkpoint-80")
-    parser.add_argument("--lora_adapter_path", default="models/lora/pythia-1.4b/r_1024/lr_2e-4/early_stopping/num_train_4096/bsize_128/checkpoint-240")
+    parser.add_argument("--lora_adapter_path", default="models/lora/pythia-1.4b/r_16/lr_2e-4/early_stopping/num_train_4096/bsize_128/seed_1/checkpoint-220")
     
     parser.add_argument("--split", default="train")
-    parser.add_argument("--base_save_path", default="results/pythia-1.4b/base_model/pretraining/tkn_freq_probs_base.csv")
-    parser.add_argument("--lora_save_path", default="results/pythia-1.4b/lora/r_1024/lr_2e-4/early_stopping/num_train_4096/bsize_128/tkn_freq_probs_best.csv")
+    parser.add_argument("--base_save_path", default="results/pythia-1.4b/base_model/num_train_4096/tkn_freq_probs_base.csv")
+    parser.add_argument("--lora_save_path", default="results/pythia-1.4b/lora/r_16/lr_2e-4/early_stopping/num_train_4096/bsize_128/seed_1/tkn_freq_probs_best.csv")
     parser.add_argument("--full_save_path", default="results/pythia-1.4b/full-ft/lr_2e-6/early_stopping/num_train_4096/bsize_128/tkn_freq_probs_best.csv")
     parser.add_argument("--num_train", default=4096, help="Number of examples to evaluate on in the finetuning train corpus")
     parser.add_argument("--pretrain_sample_frac", type=float, default=0.001)
@@ -85,7 +117,7 @@ if __name__ == "__main__":
     #Load models 
     full_model, tokenizer = load_model(model_name=full_model_path, lora_adapter_path=None)
     lora_model, tokenizer = load_model(model_name=base_model, lora_adapter_path=lora_adapter_path)
-    # base_model, tokenizer = load_model(model_name=base_model, lora_adapter_path=None)
+    base_model, tokenizer = load_model(model_name=base_model, lora_adapter_path=None)
 
     # Load dataset to compute next token probs over 
     if pretraining_corpus: 
@@ -119,20 +151,16 @@ if __name__ == "__main__":
                 y = i[p_y]
                 pair_token_freqs[(x, y)] += 1
     # pair_token_freqs = Counter(chain.from_iterable([[(x, y) for x in i for y in i[:]] for i in input_ids]))
-    print(list(pair_token_freqs.keys())[:5])
+    # print(list(pair_token_freqs.keys())[:5])
 
     models = [base_model, lora_model, full_model]
     save_paths = [base_save_path, save_path_lora, save_path_full]
-
-    # models = [lora_model, full_model]
-    # save_paths = [save_path_lora, save_path_full]
 
     models = [lora_model]
     save_paths = [save_path_lora]
 
     input_ids = torch.tensor(input_ids)
     input_ids = input_ids.to(device)
-    print(input_ids.shape)
     input_ids = torch.reshape(input_ids, (input_ids.shape[0], 1, input_ids.shape[1]))
     
     for i, model in enumerate(models):
@@ -148,7 +176,10 @@ if __name__ == "__main__":
             "prev_token_freq": [tkn_freq_tuple[3][0] for tkn_freq_tuple in token_freq_probs], 
             "curr_token_freq": [tkn_freq_tuple[3][1] for tkn_freq_tuple in token_freq_probs], 
             "pair_token_freq": [tkn_freq_tuple[3][2] for tkn_freq_tuple in token_freq_probs], 
-            "curr_token_prob": [tkn_freq_tuple[3][3] for tkn_freq_tuple in token_freq_probs]
+            "curr_token_prob": [tkn_freq_tuple[3][3] for tkn_freq_tuple in token_freq_probs], 
+            "curr_token_rank": [tkn_freq_tuple[4] for tkn_freq_tuple in token_freq_probs], 
+            "top_k_pred_tokens": [tkn_freq_tuple[5] for tkn_freq_tuple in token_freq_probs], 
+            "top_k_pred_probs": [tkn_freq_tuple[6] for tkn_freq_tuple in token_freq_probs]
         })
 
 
@@ -156,13 +187,12 @@ if __name__ == "__main__":
         n_tokens = len(token_freqs)
 
         df["pmi"] = np.log(df.pair_token_freq) + 2*np.log(n_tokens) - (np.log(n_pairs) + np.log(df.curr_token_freq) + np.log((df.prev_token_freq))) 
-        print(df.head())
+        print(df[["curr_token", "curr_token_rank", "top_k_pred_tokens", "top_k_pred_probs"]].head())
 
         # Save data
         path_to_save = save_paths[i]
         if not os.path.exists(os.path.dirname(path_to_save)): 
             os.makedirs(os.path.dirname(path_to_save))
-
 
         df.to_csv(path_to_save, index=False)
     
