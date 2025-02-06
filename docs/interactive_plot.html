@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LoRA Analysis Interactive Plot</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+        }
+        .controls {
+            width: 300px;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .plot-container {
+            flex-grow: 1;
+            padding: 20px;
+        }
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .filter-group input {
+            width: 100%;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #stats {
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <h2>Filters</h2>
+            <div class="filter-group">
+                <label>Base Probability:</label>
+                <input type="number" id="base_prob_min" step="0.01" value="0" placeholder="Min">
+                <input type="number" id="base_prob_max" step="0.01" value="1" placeholder="Max">
+            </div>
+            <div class="filter-group">
+                <label>Full-LoRA Difference:</label>
+                <input type="number" id="full_lora_diff_min" step="0.01" value="-1" placeholder="Min">
+                <input type="number" id="full_lora_diff_max" step="0.01" value="1" placeholder="Max">
+            </div>
+            <div class="filter-group">
+                <label>Relative Prevalence:</label>
+                <input type="number" id="rel_prev_min" step="0.01" value="-1" placeholder="Min">
+                <input type="number" id="rel_prev_max" step="0.01" value="1" placeholder="Max">
+            </div>
+            <button onclick="updatePlot()">Update Plot</button>
+            <div id="stats"></div>
+        </div>
+        <div class="plot-container">
+            <div id="plot"></div>
+        </div>
+    </div>
+
+    <script>
+        let plotData;
+        let plotLayout;
+
+        // Load the initial data and plot
+        fetch('plot_data.json')
+            .then(response => response.json())
+            .then(data => {
+                plotData = data;
+                createPlot(data);
+            });
+
+        function createPlot(data) {
+            const trace = {
+                type: 'scatter3d',
+                mode: 'markers',
+                x: data.map(d => d.full_prob),
+                y: data.map(d => d.lora_prob),
+                z: data.map(d => d.base_prob),
+                marker: {
+                    size: 2,
+                    color: data.map(d => d.rel_prev),
+                    colorscale: 'Viridis'
+                },
+                customdata: data.map(d => [
+                    d.wrapped_context,
+                    d.curr_token,
+                    d.base_prob,
+                    d.full_prob,
+                    d.lora_prob,
+                    d.rel_prev
+                ]),
+                hovertemplate: 
+                    "Context: %{customdata[0]}<br>" +
+                    "Token: %{customdata[1]}<br>" +
+                    "Base Prob: %{customdata[2]:.4f}<br>" +
+                    "Full-FT Prob: %{customdata[3]:.4f}<br>" +
+                    "LoRA-FT Prob: %{customdata[4]:.4f}<br>" +
+                    "Rel Prev: %{customdata[5]:.4f}<br>" +
+                    "<extra></extra>"
+            };
+
+            plotLayout = {
+                scene: {
+                    xaxis: {title: 'Full-FT Prob'},
+                    yaxis: {title: 'LoRA-FT Prob'},
+                    zaxis: {title: 'Base Prob'}
+                },
+                margin: {l: 0, r: 0, t: 0, b: 0}
+            };
+
+            Plotly.newPlot('plot', [trace], plotLayout);
+        }
+
+        function updatePlot() {
+            const filteredData = plotData.filter(d => {
+                return d.base_prob >= parseFloat(document.getElementById('base_prob_min').value) &&
+                       d.base_prob <= parseFloat(document.getElementById('base_prob_max').value) &&
+                       d.full_lora_diff >= parseFloat(document.getElementById('full_lora_diff_min').value) &&
+                       d.full_lora_diff <= parseFloat(document.getElementById('full_lora_diff_max').value) &&
+                       d.rel_prev >= parseFloat(document.getElementById('rel_prev_min').value) &&
+                       d.rel_prev <= parseFloat(document.getElementById('rel_prev_max').value);
+            });
+
+            document.getElementById('stats').innerHTML = `Showing ${filteredData.length} points`;
+            createPlot(filteredData);
+        }
+    </script>
+</body>
+</html>
