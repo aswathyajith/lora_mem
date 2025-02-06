@@ -168,13 +168,14 @@
                     },
                     aspectmode: 'cube'  // Makes the plot cubic for better visualization
                 },
-                margin: {l: 0, r: 0, t: 0, b: 0}
+                margin: {l: 0, r: 0, t: 0, b: 0},
+                autosize: true
             };
 
             Plotly.newPlot('plot', [trace], plotLayout, {
                 responsive: true,
-                displayModeBar: true);
-        }
+                displayModeBar: true
+        });
 
         function updatePlot() {
             const filteredData = plotData.filter(d => {
