@@ -78,27 +78,83 @@
             margin-top: 15px;
             font-size: 0.9em;
         }
+        .filter-group {
+            margin-bottom: 20px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .range-inputs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+        
+        .range-inputs input[type="number"] {
+            width: 80px;
+            padding: 5px;
+        }
+        
+        .range-inputs span {
+            color: #666;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        /* Style for number inputs */
+        input[type="number"] {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="controls">
             <h2>Filters</h2>
+            
             <div class="filter-group">
-                <label>Base Probability:</label>
-                <input type="number" id="base_prob_min" step="0.01" value="0" placeholder="Min">
-                <input type="number" id="base_prob_max" step="0.01" value="1" placeholder="Max">
+                <label>Base Probability</label>
+                <div class="range-inputs">
+                    <input type="number" id="base_prob_min_input" step="0.01" value="0" min="0" max="1">
+                    <span>to</span>
+                    <input type="number" id="base_prob_max_input" step="0.01" value="1" min="0" max="1">
+                </div>
+                <input type="range" id="base_prob_min_slider" min="0" max="1" step="0.01" value="0">
+                <input type="range" id="base_prob_max_slider" min="0" max="1" step="0.01" value="1">
             </div>
+            
             <div class="filter-group">
-                <label>Full-LoRA Difference:</label>
-                <input type="number" id="full_lora_diff_min" step="0.01" value="-1" placeholder="Min">
-                <input type="number" id="full_lora_diff_max" step="0.01" value="1" placeholder="Max">
+                <label>Full-LoRA Difference</label>
+                <div class="range-inputs">
+                    <input type="number" id="full_lora_diff_min_input" step="0.01" value="-1" min="-1" max="1">
+                    <span>to</span>
+                    <input type="number" id="full_lora_diff_max_input" step="0.01" value="1" min="-1" max="1">
+                </div>
+                <input type="range" id="full_lora_diff_min_slider" min="-1" max="1" step="0.01" value="-1">
+                <input type="range" id="full_lora_diff_max_slider" min="-1" max="1" step="0.01" value="1">
             </div>
+            
             <div class="filter-group">
-                <label>Relative Prevalence:</label>
-                <input type="number" id="rel_prev_min" step="0.01" value="-1" placeholder="Min">
-                <input type="number" id="rel_prev_max" step="0.01" value="1" placeholder="Max">
+                <label>Relative Prevalence</label>
+                <div class="range-inputs">
+                    <input type="number" id="rel_prev_min_input" step="0.01" value="-1" min="-1" max="1">
+                    <span>to</span>
+                    <input type="number" id="rel_prev_max_input" step="0.01" value="1" min="-1" max="1">
+                </div>
+                <input type="range" id="rel_prev_min_slider" min="-1" max="1" step="0.01" value="-1">
+                <input type="range" id="rel_prev_max_slider" min="-1" max="1" step="0.01" value="1">
             </div>
+            
             <button onclick="updatePlot()">Update Plot</button>
             <div id="stats"></div>
         </div>
@@ -176,7 +232,6 @@
                 responsive: true,
                 displayModeBar: true
         });
-        }
 
         function updatePlot() {
             const filteredData = plotData.filter(d => {
@@ -186,6 +241,70 @@
                        d.full_lora_diff <= parseFloat(document.getElementById('full_lora_diff_max').value) &&
                        d.rel_prev >= parseFloat(document.getElementById('rel_prev_min').value) &&
                        d.rel_prev <= parseFloat(document.getElementById('rel_prev_max').value);
+            });
+
+            document.getElementById('stats').innerHTML = `Showing ${filteredData.length} points`;
+            createPlot(filteredData);
+        }
+        // Function to sync slider and input values
+        function setupRangeSync(name) {
+            const minInput = document.getElementById(`${name}_min_input`);
+            const maxInput = document.getElementById(`${name}_max_input`);
+            const minSlider = document.getElementById(`${name}_min_slider`);
+            const maxSlider = document.getElementById(`${name}_max_slider`);
+            
+            // Sync min input/slider
+            minInput.addEventListener('input', function() {
+                minSlider.value = this.value;
+                // Ensure max is not less than min
+                if (parseFloat(maxInput.value) < parseFloat(this.value)) {
+                    maxInput.value = this.value;
+                    maxSlider.value = this.value;
+                }
+            });
+            
+            minSlider.addEventListener('input', function() {
+                minInput.value = this.value;
+                // Ensure max is not less than min
+                if (parseFloat(maxSlider.value) < parseFloat(this.value)) {
+                    maxSlider.value = this.value;
+                    maxInput.value = this.value;
+                }
+            });
+            
+            // Sync max input/slider
+            maxInput.addEventListener('input', function() {
+                maxSlider.value = this.value;
+                // Ensure min is not greater than max
+                if (parseFloat(minInput.value) > parseFloat(this.value)) {
+                    minInput.value = this.value;
+                    minSlider.value = this.value;
+                }
+            });
+            
+            maxSlider.addEventListener('input', function() {
+                maxInput.value = this.value;
+                // Ensure min is not greater than max
+                if (parseFloat(minSlider.value) > parseFloat(this.value)) {
+                    minSlider.value = this.value;
+                    minInput.value = this.value;
+                }
+            });
+        }
+
+        // Setup sync for all range inputs
+        setupRangeSync('base_prob');
+        setupRangeSync('full_lora_diff');
+        setupRangeSync('rel_prev');
+
+        function updatePlot() {
+            const filteredData = plotData.filter(d => {
+                return d.base_prob >= parseFloat(document.getElementById('base_prob_min_input').value) &&
+                       d.base_prob <= parseFloat(document.getElementById('base_prob_max_input').value) &&
+                       d.full_lora_diff >= parseFloat(document.getElementById('full_lora_diff_min_input').value) &&
+                       d.full_lora_diff <= parseFloat(document.getElementById('full_lora_diff_max_input').value) &&
+                       d.rel_prev >= parseFloat(document.getElementById('rel_prev_min_input').value) &&
+                       d.rel_prev <= parseFloat(document.getElementById('rel_prev_max_input').value);
             });
 
             document.getElementById('stats').innerHTML = `Showing ${filteredData.length} points`;
