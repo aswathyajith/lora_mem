@@ -1,12 +1,9 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>LoRA Analysis Interactive Plot</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -124,7 +121,12 @@
     <div class="container">
         <div class="controls">
             <h2>Filters</h2>
-            
+            <div class="filter-group">
+                <label>Token</label>
+                <select id="token_select" class="token-select" multiple>
+                    <option value="all_tokens">All Tokens</option>
+                </select>
+            </div>
             <div class="filter-group">
                 <label>Base Probability</label>
                 <div class="range-inputs">
@@ -132,7 +134,6 @@
                     <span>to</span>
                     <input type="number" id="base_prob_max" step="0.01" value="1" min="0" max="1">
                 </div>
-                <input type="range" id="base_prob_range" min="0" max="100" value="0,100">
             </div>
             
             <div class="filter-group">
@@ -142,7 +143,6 @@
                     <span>to</span>
                     <input type="number" id="full_lora_diff_max" step="0.01" value="1" min="-1" max="1">
                 </div>
-                <input type="range" id="full_lora_diff_range" min="0" max="100" value="0,100">
             </div>
             
             <div class="filter-group">
@@ -152,7 +152,6 @@
                     <span>to</span>
                     <input type="number" id="rel_prev_max" step="0.01" value="1" min="-1" max="1">
                 </div>
-                <input type="range" id="rel_prev_range" min="0" max="100" value="0,100">
             </div>
             
             <button onclick="updatePlot()">Update Plot</button>
@@ -164,30 +163,13 @@
     </div>
 
     <script>
+        // Global variables
         let plotData;
         let plotLayout;
         let uniqueTokens = new Set();
 
-        // Load the initial data and plot
-        fetch('plot_data.json')
-            .then(response => response.json())
-            .then(data => {
-                plotData = data;
-                
-                // Populate token dropdown
-                uniqueTokens = new Set(data.map(d => d.curr_token));
-                const tokenSelect = document.getElementById('token_select');
-                uniqueTokens.forEach(token => {
-                    const option = document.createElement('option');
-                    option.value = token;
-                    option.text = token;
-                    tokenSelect.appendChild(option);
-                });
-                
-                createPlot(data);
-            });
-
-            function createPlot(data) {
+        // Function definitions
+        function createPlot(data) {
             const trace = {
                 type: 'scatter3d',
                 mode: 'markers',
@@ -252,73 +234,131 @@
             });
         }
 
-        // Function to map slider value (0-100) to actual range
-        function mapSliderToRange(value, min, max) {
-            return min + (value / 100) * (max - min);
-        }
-
-        // Function to setup range slider
-        function setupRangeSlider(name, minVal, maxVal) {
-            const slider = document.getElementById(`${name}_range`);
-            const minInput = document.getElementById(`${name}_min`);
-            const maxInput = document.getElementById(`${name}_max`);
-
-            noUiSlider.create(slider, {
-                start: [0, 100],
-                connect: true,
-                range: {
-                    'min': 0,
-                    'max': 100
-                }
-            });
-
-            slider.noUiSlider.on('update', function (values, handle) {
-                const mappedValue = mapSliderToRange(values[handle], minVal, maxVal);
-                if (handle === 0) {
-                    minInput.value = mappedValue.toFixed(2);
-                } else {
-                    maxInput.value = mappedValue.toFixed(2);
-                }
-            });
-
-            // Update slider when inputs change
-            minInput.addEventListener('change', function() {
-                const value = (this.value - minVal) / (maxVal - minVal) * 100;
-                slider.noUiSlider.setHandle(0, value);
-            });
-
-            maxInput.addEventListener('change', function() {
-                const value = (this.value - minVal) / (maxVal - minVal) * 100;
-                slider.noUiSlider.setHandle(1, value);
-            });
-        }
-
-        // Setup all range sliders
-        setupRangeSlider('base_prob', 0, 1);
-        setupRangeSlider('full_lora_diff', -1, 1);
-        setupRangeSlider('rel_prev', -1, 1);
+        
 
         function updatePlot() {
             const selectedTokens = Array.from(document.getElementById('token_select').selectedOptions).map(option => option.value);
             
+            // Cache parsed values
+            const base_prob_min = parseFloat(document.getElementById('base_prob_min').value);
+            const base_prob_max = parseFloat(document.getElementById('base_prob_max').value);
+            const full_lora_diff_min = parseFloat(document.getElementById('full_lora_diff_min').value);
+            const full_lora_diff_max = parseFloat(document.getElementById('full_lora_diff_max').value);
+            const rel_prev_min = parseFloat(document.getElementById('rel_prev_min').value);
+            const rel_prev_max = parseFloat(document.getElementById('rel_prev_max').value);
+            
+            // Get the global min/max values for relative prevalence from the full dataset
+            const globalRelPrevMin = Math.min(...plotData.map(d => d.rel_prev));
+            const globalRelPrevMax = Math.max(...plotData.map(d => d.rel_prev));
+            
             const filteredData = plotData.filter(d => {
-                const tokenMatch = selectedTokens.length === 0 || selectedTokens.includes(d.curr_token);
+                const tokenMatch = selectedTokens.includes('all_tokens') || 
+                                  selectedTokens.length === 0 || 
+                                  selectedTokens.includes(d.curr_token);
+                const full_lora_diff = d.full_prob - d.lora_prob;
                 return tokenMatch &&
-                       d.base_prob >= parseFloat(document.getElementById('base_prob_min').value) &&
-                       d.base_prob <= parseFloat(document.getElementById('base_prob_max').value) &&
-                       d.full_lora_diff >= parseFloat(document.getElementById('full_lora_diff_min').value) &&
-                       d.full_lora_diff <= parseFloat(document.getElementById('full_lora_diff_max').value) &&
-                       d.rel_prev >= parseFloat(document.getElementById('rel_prev_min').value) &&
-                       d.rel_prev <= parseFloat(document.getElementById('rel_prev_max').value);
+                       d.base_prob >= base_prob_min &&
+                       d.base_prob <= base_prob_max &&
+                       full_lora_diff >= full_lora_diff_min &&
+                       full_lora_diff <= full_lora_diff_max &&
+                       d.rel_prev >= rel_prev_min &&
+                       d.rel_prev <= rel_prev_max;
             });
 
-            document.getElementById('stats').innerHTML = `Showing ${filteredData.length} points`;
-            createPlot(filteredData);
+            document.getElementById('stats').innerHTML = `
+                <p>Showing ${filteredData.length} points out of ${plotData.length} total points</p>
+                <p>(${((filteredData.length / plotData.length) * 100).toFixed(1)}% of total)</p>
+            `;
+
+            const trace = {
+                type: 'scatter3d',
+                mode: 'markers',
+                x: filteredData.map(d => d.full_prob),
+                y: filteredData.map(d => d.lora_prob),
+                z: filteredData.map(d => d.base_prob),
+                marker: {
+                    size: 2,
+                    color: filteredData.map(d => d.rel_prev),
+                    colorscale: 'Viridis',
+                    cmin: globalRelPrevMin,  // Use global dataset min
+                    cmax: globalRelPrevMax,  // Use global dataset max
+                    colorbar: {
+                        title: 'Relative Prevalence',
+                        thickness: 20,
+                        len: 0.75
+                    },
+                    showscale: true
+                },
+                customdata: filteredData.map(d => [
+                    d.wrapped_context,
+                    d.curr_token,
+                    d.base_prob,
+                    d.full_prob,
+                    d.lora_prob,
+                    d.rel_prev
+                ]),
+                hovertemplate: 
+                    "Context: %{customdata[0]}<br>" +
+                    "Token: %{customdata[1]}<br>" +
+                    "Base Prob: %{customdata[2]:.4f}<br>" +
+                    "Full-FT Prob: %{customdata[3]:.4f}<br>" +
+                    "LoRA-FT Prob: %{customdata[4]:.4f}<br>" +
+                    "Rel Prev: %{customdata[5]:.4f}<br>" +
+                    "<extra></extra>"
+            };
+
+            Plotly.react('plot', [trace], plotLayout);
         }
 
-        // Add event listener for token selection
-        document.getElementById('token_select').addEventListener('change', updatePlot);
-        
+        // DOM ready event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            // First fetch tokens from tokens.txt
+            fetch('tokens.txt')
+                .then(response => response.text())
+                .then(text => {
+                    const tokens = text.trim().split('\n');
+                    console.log("Tokens from file:", tokens); // Debug log
+                    
+                    const tokenSelect = document.getElementById('token_select');
+                    tokenSelect.innerHTML = ''; // Clear existing options
+                    
+                    // Add "All Tokens" option
+                    const allOption = document.createElement('option');
+                    allOption.value = "all_tokens";
+                    allOption.text = "All Tokens";
+                    tokenSelect.appendChild(allOption);
+                    
+                    // Add individual token options in original order from file
+                    tokens.forEach((token, index) => {
+                        console.log(`Adding token ${index}:`, token); // Debug log
+                        const option = document.createElement('option');
+                        option.value = token;
+                        option.text = token;
+                        tokenSelect.appendChild(option);
+                    });
+                    
+                    // Verify final order
+                    console.log("Final select options:", Array.from(tokenSelect.options).map(opt => opt.value));
+                })
+                .then(() => {
+                    // After tokens are loaded, fetch plot data
+                    return fetch('plot_data.json');
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    plotData = data;
+                    createPlot(data);
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    document.getElementById('stats').innerHTML = 'Error loading data: ' + error.message;
+                });
+        });
     </script>
 </body>
 </html>
