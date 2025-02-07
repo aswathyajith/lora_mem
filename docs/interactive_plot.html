@@ -5,6 +5,8 @@
     <title>LoRA Analysis Interactive Plot</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -33,7 +35,7 @@
         
         .plot-container {
             flex: 1;
-            min-width: 0;  /* Prevents flex item from overflowing */
+            min-width: 0;
             height: 100%;
             position: relative;
         }
@@ -46,38 +48,6 @@
             bottom: 0;
         }
         
-        .filter-group {
-            margin-bottom: 15px;
-        }
-        
-        .filter-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        
-        .filter-group input {
-            width: 100%;
-        }
-        
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-bottom: 15px;
-        }
-        
-        button:hover {
-            background-color: #45a049;
-        }
-        
-        #stats {
-            margin-top: 15px;
-            font-size: 0.9em;
-        }
         .filter-group {
             margin-bottom: 20px;
         }
@@ -109,11 +79,44 @@
             margin: 10px 0;
         }
         
-        /* Style for number inputs */
         input[type="number"] {
             border: 1px solid #ccc;
             border-radius: 4px;
             padding: 5px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        #stats {
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .token-select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+        }
+        
+        /* Add a max-height and scrolling for long token lists */
+        .token-select select {
+            max-height: 200px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -125,34 +128,31 @@
             <div class="filter-group">
                 <label>Base Probability</label>
                 <div class="range-inputs">
-                    <input type="number" id="base_prob_min_input" step="0.01" value="0" min="0" max="1">
+                    <input type="number" id="base_prob_min" step="0.01" value="0" min="0" max="1">
                     <span>to</span>
-                    <input type="number" id="base_prob_max_input" step="0.01" value="1" min="0" max="1">
+                    <input type="number" id="base_prob_max" step="0.01" value="1" min="0" max="1">
                 </div>
-                <input type="range" id="base_prob_min_slider" min="0" max="1" step="0.01" value="0">
-                <input type="range" id="base_prob_max_slider" min="0" max="1" step="0.01" value="1">
+                <input type="range" id="base_prob_range" min="0" max="100" value="0,100">
             </div>
             
             <div class="filter-group">
                 <label>Full-LoRA Difference</label>
                 <div class="range-inputs">
-                    <input type="number" id="full_lora_diff_min_input" step="0.01" value="-1" min="-1" max="1">
+                    <input type="number" id="full_lora_diff_min" step="0.01" value="-1" min="-1" max="1">
                     <span>to</span>
-                    <input type="number" id="full_lora_diff_max_input" step="0.01" value="1" min="-1" max="1">
+                    <input type="number" id="full_lora_diff_max" step="0.01" value="1" min="-1" max="1">
                 </div>
-                <input type="range" id="full_lora_diff_min_slider" min="-1" max="1" step="0.01" value="-1">
-                <input type="range" id="full_lora_diff_max_slider" min="-1" max="1" step="0.01" value="1">
+                <input type="range" id="full_lora_diff_range" min="0" max="100" value="0,100">
             </div>
             
             <div class="filter-group">
                 <label>Relative Prevalence</label>
                 <div class="range-inputs">
-                    <input type="number" id="rel_prev_min_input" step="0.01" value="-1" min="-1" max="1">
+                    <input type="number" id="rel_prev_min" step="0.01" value="-1" min="-1" max="1">
                     <span>to</span>
-                    <input type="number" id="rel_prev_max_input" step="0.01" value="1" min="-1" max="1">
+                    <input type="number" id="rel_prev_max" step="0.01" value="1" min="-1" max="1">
                 </div>
-                <input type="range" id="rel_prev_min_slider" min="-1" max="1" step="0.01" value="-1">
-                <input type="range" id="rel_prev_max_slider" min="-1" max="1" step="0.01" value="1">
+                <input type="range" id="rel_prev_range" min="0" max="100" value="0,100">
             </div>
             
             <button onclick="updatePlot()">Update Plot</button>
@@ -166,16 +166,28 @@
     <script>
         let plotData;
         let plotLayout;
+        let uniqueTokens = new Set();
 
         // Load the initial data and plot
         fetch('plot_data.json')
             .then(response => response.json())
             .then(data => {
                 plotData = data;
+                
+                // Populate token dropdown
+                uniqueTokens = new Set(data.map(d => d.curr_token));
+                const tokenSelect = document.getElementById('token_select');
+                uniqueTokens.forEach(token => {
+                    const option = document.createElement('option');
+                    option.value = token;
+                    option.text = token;
+                    tokenSelect.appendChild(option);
+                });
+                
                 createPlot(data);
             });
 
-        function createPlot(data) {
+            function createPlot(data) {
             const trace = {
                 type: 'scatter3d',
                 mode: 'markers',
@@ -183,9 +195,15 @@
                 y: data.map(d => d.lora_prob),
                 z: data.map(d => d.base_prob),
                 marker: {
-                    size: 1.5,
+                    size: 2,
                     color: data.map(d => d.rel_prev),
-                    colorscale: 'Viridis'
+                    colorscale: 'Viridis',
+                    colorbar: {
+                        title: 'Relative Prevalence',
+                        thickness: 20,
+                        len: 0.75
+                    },
+                    showscale: true  // This ensures the colorbar is displayed
                 },
                 customdata: data.map(d => [
                     d.wrapped_context,
@@ -209,20 +227,20 @@
                 scene: {
                     xaxis: {
                         title: 'Full-FT Prob',
-                        range: [0, 1],  // Fixed range
+                        range: [0, 1],
                         autorange: false
                     },
                     yaxis: {
                         title: 'LoRA-FT Prob',
-                        range: [0, 1],  // Fixed range
+                        range: [0, 1],
                         autorange: false
                     },
                     zaxis: {
                         title: 'Base Prob',
-                        range: [0, 1],  // Fixed range
+                        range: [0, 1],
                         autorange: false
                     },
-                    aspectmode: 'cube'  // Makes the plot cubic for better visualization
+                    aspectmode: 'cube'
                 },
                 margin: {l: 0, r: 0, t: 0, b: 0},
                 autosize: true
@@ -231,11 +249,62 @@
             Plotly.newPlot('plot', [trace], plotLayout, {
                 responsive: true,
                 displayModeBar: true
-        });
+            });
+        }
+
+        // Function to map slider value (0-100) to actual range
+        function mapSliderToRange(value, min, max) {
+            return min + (value / 100) * (max - min);
+        }
+
+        // Function to setup range slider
+        function setupRangeSlider(name, minVal, maxVal) {
+            const slider = document.getElementById(`${name}_range`);
+            const minInput = document.getElementById(`${name}_min`);
+            const maxInput = document.getElementById(`${name}_max`);
+
+            noUiSlider.create(slider, {
+                start: [0, 100],
+                connect: true,
+                range: {
+                    'min': 0,
+                    'max': 100
+                }
+            });
+
+            slider.noUiSlider.on('update', function (values, handle) {
+                const mappedValue = mapSliderToRange(values[handle], minVal, maxVal);
+                if (handle === 0) {
+                    minInput.value = mappedValue.toFixed(2);
+                } else {
+                    maxInput.value = mappedValue.toFixed(2);
+                }
+            });
+
+            // Update slider when inputs change
+            minInput.addEventListener('change', function() {
+                const value = (this.value - minVal) / (maxVal - minVal) * 100;
+                slider.noUiSlider.setHandle(0, value);
+            });
+
+            maxInput.addEventListener('change', function() {
+                const value = (this.value - minVal) / (maxVal - minVal) * 100;
+                slider.noUiSlider.setHandle(1, value);
+            });
+        }
+
+        // Setup all range sliders
+        setupRangeSlider('base_prob', 0, 1);
+        setupRangeSlider('full_lora_diff', -1, 1);
+        setupRangeSlider('rel_prev', -1, 1);
 
         function updatePlot() {
+            const selectedTokens = Array.from(document.getElementById('token_select').selectedOptions).map(option => option.value);
+            
             const filteredData = plotData.filter(d => {
-                return d.base_prob >= parseFloat(document.getElementById('base_prob_min').value) &&
+                const tokenMatch = selectedTokens.length === 0 || selectedTokens.includes(d.curr_token);
+                return tokenMatch &&
+                       d.base_prob >= parseFloat(document.getElementById('base_prob_min').value) &&
                        d.base_prob <= parseFloat(document.getElementById('base_prob_max').value) &&
                        d.full_lora_diff >= parseFloat(document.getElementById('full_lora_diff_min').value) &&
                        d.full_lora_diff <= parseFloat(document.getElementById('full_lora_diff_max').value) &&
@@ -246,70 +315,10 @@
             document.getElementById('stats').innerHTML = `Showing ${filteredData.length} points`;
             createPlot(filteredData);
         }
-        // Function to sync slider and input values
-        function setupRangeSync(name) {
-            const minInput = document.getElementById(`${name}_min_input`);
-            const maxInput = document.getElementById(`${name}_max_input`);
-            const minSlider = document.getElementById(`${name}_min_slider`);
-            const maxSlider = document.getElementById(`${name}_max_slider`);
-            
-            // Sync min input/slider
-            minInput.addEventListener('input', function() {
-                minSlider.value = this.value;
-                // Ensure max is not less than min
-                if (parseFloat(maxInput.value) < parseFloat(this.value)) {
-                    maxInput.value = this.value;
-                    maxSlider.value = this.value;
-                }
-            });
-            
-            minSlider.addEventListener('input', function() {
-                minInput.value = this.value;
-                // Ensure max is not less than min
-                if (parseFloat(maxSlider.value) < parseFloat(this.value)) {
-                    maxSlider.value = this.value;
-                    maxInput.value = this.value;
-                }
-            });
-            
-            // Sync max input/slider
-            maxInput.addEventListener('input', function() {
-                maxSlider.value = this.value;
-                // Ensure min is not greater than max
-                if (parseFloat(minInput.value) > parseFloat(this.value)) {
-                    minInput.value = this.value;
-                    minSlider.value = this.value;
-                }
-            });
-            
-            maxSlider.addEventListener('input', function() {
-                maxInput.value = this.value;
-                // Ensure min is not greater than max
-                if (parseFloat(minSlider.value) > parseFloat(this.value)) {
-                    minSlider.value = this.value;
-                    minInput.value = this.value;
-                }
-            });
-        }
 
-        // Setup sync for all range inputs
-        setupRangeSync('base_prob');
-        setupRangeSync('full_lora_diff');
-        setupRangeSync('rel_prev');
-
-        function updatePlot() {
-            const filteredData = plotData.filter(d => {
-                return d.base_prob >= parseFloat(document.getElementById('base_prob_min_input').value) &&
-                       d.base_prob <= parseFloat(document.getElementById('base_prob_max_input').value) &&
-                       d.full_lora_diff >= parseFloat(document.getElementById('full_lora_diff_min_input').value) &&
-                       d.full_lora_diff <= parseFloat(document.getElementById('full_lora_diff_max_input').value) &&
-                       d.rel_prev >= parseFloat(document.getElementById('rel_prev_min_input').value) &&
-                       d.rel_prev <= parseFloat(document.getElementById('rel_prev_max_input').value);
-            });
-
-            document.getElementById('stats').innerHTML = `Showing ${filteredData.length} points`;
-            createPlot(filteredData);
-        }
+        // Add event listener for token selection
+        document.getElementById('token_select').addEventListener('change', updatePlot);
+        
     </script>
 </body>
 </html>
