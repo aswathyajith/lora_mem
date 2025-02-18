@@ -174,7 +174,7 @@
                 type: 'scatter3d',
                 mode: 'markers',
                 x: data.map(d => d.full_prob),
-                y: data.map(d => d.lora_prob),
+                y: data.map(d => d.lora_r16_prob),
                 z: data.map(d => d.base_prob),
                 marker: {
                     size: 2,
@@ -192,7 +192,7 @@
                     d.curr_token,
                     d.base_prob,
                     d.full_prob,
-                    d.lora_prob,
+                    d.lora_r16_prob,
                     d.rel_prev
                 ]),
                 hovertemplate: 
@@ -242,8 +242,8 @@
             // Cache parsed values
             const base_prob_min = parseFloat(document.getElementById('base_prob_min').value);
             const base_prob_max = parseFloat(document.getElementById('base_prob_max').value);
-            const full_lora_diff_min = parseFloat(document.getElementById('full_lora_diff_min').value);
-            const full_lora_diff_max = parseFloat(document.getElementById('full_lora_diff_max').value);
+            // const full_lora_diff_min = parseFloat(document.getElementById('full_lora_diff_min').value);
+            // const full_lora_diff_max = parseFloat(document.getElementById('full_lora_diff_max').value);
             const rel_prev_min = parseFloat(document.getElementById('rel_prev_min').value);
             const rel_prev_max = parseFloat(document.getElementById('rel_prev_max').value);
             
@@ -255,12 +255,12 @@
                 const tokenMatch = selectedTokens.includes('all_tokens') || 
                                   selectedTokens.length === 0 || 
                                   selectedTokens.includes(d.curr_token);
-                const full_lora_diff = d.full_prob - d.lora_prob;
+                const full_lora_diff = d.full_prob - d.lora_r16_prob;
                 return tokenMatch &&
                        d.base_prob >= base_prob_min &&
                        d.base_prob <= base_prob_max &&
-                       full_lora_diff >= full_lora_diff_min &&
-                       full_lora_diff <= full_lora_diff_max &&
+                    //    full_lora_diff >= full_lora_diff_min &&
+                    //    full_lora_diff <= full_lora_diff_max &&
                        d.rel_prev >= rel_prev_min &&
                        d.rel_prev <= rel_prev_max;
             });
@@ -274,7 +274,7 @@
                 type: 'scatter3d',
                 mode: 'markers',
                 x: filteredData.map(d => d.full_prob),
-                y: filteredData.map(d => d.lora_prob),
+                y: filteredData.map(d => d.lora_r16_prob),
                 z: filteredData.map(d => d.base_prob),
                 marker: {
                     size: 2,
@@ -294,7 +294,7 @@
                     d.curr_token,
                     d.base_prob,
                     d.full_prob,
-                    d.lora_prob,
+                    d.lora_r16_prob,
                     d.rel_prev
                 ]),
                 hovertemplate: 
@@ -313,6 +313,7 @@
         // DOM ready event listener
         document.addEventListener('DOMContentLoaded', function() {
             // First fetch tokens from tokens.txt
+            console.log("Fetching tokens from tokens.txt");
             fetch('tokens.txt')
                 .then(response => response.text())
                 .then(text => {
@@ -342,7 +343,7 @@
                 })
                 .then(() => {
                     // After tokens are loaded, fetch plot data
-                    return fetch('plot_data.json');
+                    return fetch('data/seed_1/lora_r16_full_merged.json');
                 })
                 .then(response => {
                     if (!response.ok) {
