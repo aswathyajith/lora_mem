@@ -1,0 +1,40 @@
+{
+    "legal": {
+        "[skip]theatticusproject/cuad-qa": {
+            "dirname": "legal/cuad",
+            "num_train": -1, 
+            "max_seq_len": 2048,
+            "train_split_name": "train",
+            "test_split_name": "test",
+            "text_field": "context"
+        }, 
+        "pile-of-law/pile-of-law:us_bills": {
+            "dirname": "legal/us_bills",
+            "num_train": -1,
+            "max_seq_len": 2048,
+            "train_split_name": "train",
+            "test_split_name": "validation",
+            "text_field": "text"
+        }
+    }  ,
+    "biomed": {
+        "bigbio/biomrc:biomrc_large_A_bigbio_qa": {
+            "dirname": "biomed/biomrc",
+            "num_train": -1, 
+            "max_seq_len": 2048,
+            "train_split_name": "train",
+            "test_split_name": "test",
+            "text_field": "context"
+        }
+    },
+    "wiki": {
+        "wikitext:wikitext-2-raw-v1": {
+            "dirname": "wiki/wikitext",
+            "num_train": 4096, 
+            "max_seq_len": 128,
+            "train_split_name": "train",
+            "test_split_name": "validation",
+            "text_field": "text"
+        }
+    }   
+}
