@@ -1,0 +1,11 @@
+{
+    "base": {
+        "path": "results/model_gens/pythia-1.4b/legal/us_bills/train/sample_1024/base/tkn_freq_probs.csv"
+    },
+    "lora_r16": {
+        "path": "results/model_gens/pythia-1.4b/legal/us_bills/train/sample_1024/lora/r_16/lr_2e-3/seed_1/tkn_freq_probs.csv"
+    },
+    "full": {
+        "path": "results/model_gens/pythia-1.4b/legal/us_bills/train/sample_1024/full-ft/lr_2e-5/seed_1/tkn_freq_probs.csv"
+    }
+}
