@@ -168,25 +168,45 @@
         let plotLayout;
         let uniqueTokens = new Set();
 
+        function getDatasetFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const dataset = params.get('dataset') || 'legal/us_bills'; // default dataset if none specified
+            const seed = params.get('seed') || '1'; // default seed if none specified
+            return `./data/${dataset}/seed_${seed}/lora_r16_full_merged.json`;
+        }
+
         // Function definitions
         function createPlot(data) {
             const trace = {
-                type: 'scatter3d',
-                mode: 'markers',
-                x: data.map(d => d.full_prob),
-                y: data.map(d => d.lora_r16_prob),
-                z: data.map(d => d.base_prob),
+                // type: 'scatter3d',
+                // mode: 'markers',
+                // x: data.map(d => d.full_prob),
+                // y: data.map(d => d.lora_r16_prob),
+                // z: data.map(d => d.base_prob),
+                // marker: {
+                //     size: 2,
+                //     color: data.map(d => d.rel_prev),
+                //     colorscale: 'Viridis',
+                //     colorbar: {
+                //         title: 'Relative Prevalence',
+                //         thickness: 20,
+                //         len: 0.75
+                //     },
+                //     showscale: true  // This ensures the colorbar is displayed
+                // },
+
                 marker: {
                     size: 2,
-                    color: data.map(d => d.rel_prev),
+                    color: data.map(d => tokenRanks[d.curr_token] || 0),
                     colorscale: 'Viridis',
                     colorbar: {
-                        title: 'Relative Prevalence',
+                        title: 'Token Rank',
                         thickness: 20,
                         len: 0.75
                     },
                     showscale: true  // This ensures the colorbar is displayed
                 },
+
                 customdata: data.map(d => [
                     d.wrapped_context,
                     d.curr_token,
@@ -278,12 +298,10 @@
                 z: filteredData.map(d => d.base_prob),
                 marker: {
                     size: 2,
-                    color: filteredData.map(d => d.rel_prev),
+                    color: filteredData.map(d => tokenRanks[d.curr_token]), // Use rank for color
                     colorscale: 'Viridis',
-                    cmin: globalRelPrevMin,  // Use global dataset min
-                    cmax: globalRelPrevMax,  // Use global dataset max
                     colorbar: {
-                        title: 'Relative Prevalence',
+                        title: 'Token Rank',
                         thickness: 20,
                         len: 0.75
                     },
@@ -314,11 +332,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             // First fetch tokens from tokens.txt
             console.log("Fetching tokens from tokens.txt");
-            fetch('tokens.txt')
-                .then(response => response.text())
-                .then(text => {
-                    const tokens = text.trim().split('\n');
-                    console.log("Tokens from file:", tokens); // Debug log
+            fetch('./token_ranks.json')
+                .then(response => response.json())
+                .then(rankArray => {
+                    // Convert array to object for easier rank lookups
+                    tokenRanks = Object.fromEntries(rankArray.map(item => [item.token, item.rank]));
                     
                     const tokenSelect = document.getElementById('token_select');
                     tokenSelect.innerHTML = ''; // Clear existing options
@@ -329,21 +347,26 @@
                     allOption.text = "All Tokens";
                     tokenSelect.appendChild(allOption);
                     
-                    // Add individual token options in original order from file
-                    tokens.forEach((token, index) => {
-                        console.log(`Adding token ${index}:`, token); // Debug log
+                    // Create a document fragment for better performance
+                    const fragment = document.createDocumentFragment();
+                    
+                    // Add tokens in their original (already sorted) order
+                    rankArray.forEach(({token}) => {
                         const option = document.createElement('option');
                         option.value = token;
                         option.text = token;
-                        tokenSelect.appendChild(option);
+                        fragment.appendChild(option);
                     });
                     
                     // Verify final order
-                    console.log("Final select options:", Array.from(tokenSelect.options).map(opt => opt.value));
+                    tokenSelect.appendChild(fragment);
                 })
                 .then(() => {
                     // After tokens are loaded, fetch plot data
-                    return fetch('data/seed_1/lora_r16_full_merged.json');
+                    const datasetPath = getDatasetFromURL();
+                    console.log("Loading dataset from:", datasetPath);
+                    return fetch(datasetPath);
+                    // return fetch('./data/legal/us_bills/seed_1/lora_r16_full_merged.json');
                 })
                 .then(response => {
                     if (!response.ok) {
