@@ -7,6 +7,7 @@ import random
 import numpy as np
 import pandas as pd
 import os
+from collections import defaultdict
 
 # def load_model(model_name, lora_adapter_path):
 #     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -47,29 +48,31 @@ def load_model(model_name, lora_adapter_path):
 def preprocess_dataset(ds, dataset="bigbio/muchmore:muchmore_en_bigbio_kb"):
     print("dataset name: ", dataset)
     if dataset == "bigbio/muchmore:muchmore_en_bigbio_kb":
-        ds = ds["train"]
         def extract_text(row):
             row["text"] = row["passages"][0]["text"][0]
             return row
         
         ds = ds.map(extract_text)
-        # Split into train and test 
-        ds = ds.train_test_split(test_size=0.2, seed=1)
-
     return ds
-def load_data(tokenizer, dataset="wikitext:wikitext-2-raw-v1", split="train", num_train=-1, max_length=128, batch_size=None, pad_sequences=False, shuffle=False, text_field="text"): 
-
+def load_data(tokenizer, dataset="wikitext:wikitext-2-raw-v1", split="train", num_train=-1, max_length=128, batch_size=None, pad_sequences=False, text_field="text", streaming=False): 
     
     ds_name = dataset.split(":")
     print(ds_name)
     if len(ds_name) > 1: # has subset 
-        ds = load_dataset(ds_name[0], ds_name[1])
+        ds = load_dataset(ds_name[0], ds_name[1], streaming=streaming, split=split)
 
     else: 
-        ds = load_dataset(ds_name[0])
+        ds = load_dataset(ds_name[0], streaming=streaming, split=split)
     
+    if streaming:
+        ds = ds.shuffle(seed=42, buffer_size=20000).take(num_train)
+        
+        # Convert iterable dataset to dataset
+        def generator(iterable_ds):
+            yield from iterable_ds
+
+        ds = Dataset.from_generator(generator, gen_kwargs={"iterable_ds": ds})
     ds = preprocess_dataset(ds, dataset)
-    ds = ds[split]
 
     if dataset == "Rowan/hellaswag": 
          ds = ds.filter(lambda row: row['label'] != "") # Filter out rows without label 
@@ -84,10 +87,11 @@ def load_data(tokenizer, dataset="wikitext:wikitext-2-raw-v1", split="train", nu
          
          ds = ds.map(combine_context_ending)
 
-    ds = ds.filter(lambda ex: ex[text_field] != '') # filter out empty sequences
-    print(ds[text_field][0][:2048], flush=True)
+    print("num_train: ", num_train)
+    # print(ds[text_field][0][:2048], flush=True)
+    
     # Remove duplicates
-    uniq_text = list(set(ds[text_field]))
+    uniq_text = sorted(list(set(ds[text_field])))
     df = pd.DataFrame({text_field: uniq_text})
     uniq_ds = Dataset.from_pandas(df)
     print("# unique Train samples: ", len(ds))
@@ -95,14 +99,17 @@ def load_data(tokenizer, dataset="wikitext:wikitext-2-raw-v1", split="train", nu
 
     if not pad_sequences:
         ds = ds.filter(lambda sample: sample['input_ids'][max_length-1] != tokenizer.eos_token_id)
+
+    print(f"Number of samples with length >= {max_length}: {len(ds)}")
         
+    # setting seed for reproducibility 
+    # (we don't need to set this as the same value as the arg seed)
+    ds = ds.shuffle(seed=42) 
     if num_train > 0:
-        if shuffle: 
-            # setting seed for reproducibility 
-            # (we don't need to set this as the same value as the arg seed)
-            ds = ds.shuffle(seed=42) 
         ds = ds.select(range(num_train))
     
+    print("Loaded dataset size: ", len(ds), flush=True)
+    print(ds)
     return ds
 
 def prompt_model(model, tokenizer, batch, prompt_context_len, print_seqs=False, tokenized=False):
@@ -154,3 +161,13 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     print(f"Random seed set as {seed}")
+
+def compute_pair_freqs(input_ids):
+        pair_token_freqs = defaultdict(int)
+        for i in input_ids:
+            for p_x in range(len(i)): 
+                x = i[p_x]
+                for p_y in range(p_x+1, len(i)): 
+                    y = i[p_y]
+                    pair_token_freqs[(x, y)] += 1
+        return pair_token_freqs

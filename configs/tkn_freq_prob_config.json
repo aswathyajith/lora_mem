@@ -1,0 +1,69 @@
+{
+    "legal": {
+        "theatticusproject/cuad-qa": {
+            "subdir": "legal/cuad",
+            "n_samples": -1, 
+            "max_seq_len": 2048,
+            "train_split_name": "train",
+            "test_split_name": "test",
+            "text_field": "context",
+            "pythia-1.4b": {
+                "lora_rank_lr": {
+                    "16": "2e-3"
+                },
+                "full_lr": "2e-5"
+            },
+            "models": ["base", "lora", "full"]
+        }, 
+        "[skip]pile-of-law/pile-of-law:us_bills": {
+            "subdir": "legal/us_bills",
+            "n_samples": 1024,
+            "max_seq_len": 2048,
+            "train_split_name": "train",
+            "test_split_name": "validation",
+            "text_field": "text",
+            "pythia-1.4b": {
+                "lora_rank_lr": {
+                    "16": "2e-3",
+                    "2048": "2e-3"
+                },
+                "full_lr": "2e-5"
+            },
+            "models": ["base", "lora", "full"]
+        }
+    }  ,
+    "biomed": {
+        "bigbio/chemprot:chemprot_full_source": {
+            "subdir": "biomed/chemprot",
+            "n_samples": -1, 
+            "max_seq_len": 2048,
+            "train_split_name": "train",
+            "test_split_name": "validation",
+            "text_field": "text",
+            "pythia-1.4b": {
+                "lora_rank_lr": {
+                    "16": "2e-4"
+                },
+                "full_lr": "2e-6"
+            },
+            "models": ["base", "lora", "full"]
+        }
+    },
+    "wiki": {
+        "wikitext:wikitext-2-raw-v1": {
+            "subdir": "wiki/wikitext",
+            "num_train": -1, 
+            "max_seq_len": 2048,
+            "train_split_name": "train",
+            "test_split_name": "validation",
+            "text_field": "text",
+            "pythia-1.4b": {
+                "lora_rank_lr": {
+                    "16": "2e-4"
+                },
+                "full_lr": "2e-6"
+            },
+            "models": ["base", "lora", "full"]
+        }
+    }   
+}

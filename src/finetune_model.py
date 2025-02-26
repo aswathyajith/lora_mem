@@ -1,26 +1,19 @@
 import os
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, BitsAndBytesConfig,EarlyStoppingCallback
-from datasets import load_dataset
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,EarlyStoppingCallback
 from peft import LoraConfig
-import torch
 from trl import SFTTrainer
-# import pandas as pd
 import argparse
 import json
 from basic_prompter import *
-# import wandb
-import sys
-from sys import exit
-
-
 
 class Finetuning:
-    def __init__(self, model_name, domain, lora, seed, lr):
+    def __init__(self, model_name, domain, lora, seed, lr, lora_rank=None):
         self.model_name = model_name
         self.domain = domain
         self.lora = lora
         self.seed = seed
         self.lr = lr
+        self.lora_rank = lora_rank
         self.model = None
         self.tokenizer = None
         self.training_arguments = None
@@ -28,6 +21,7 @@ class Finetuning:
         self.train_dataset = None
         self.val_dataset = None
         self.data_config = None
+        
         
     def load_model_and_configs(self, data_config, model_config_path, lora_config_path=None):
         seed = self.seed
@@ -51,6 +45,8 @@ class Finetuning:
             with open(lora_config_path, 'r') as f:
                 lora_config = json.load(f)
                 print(lora_config)
+                if self.lora_rank is not None:
+                    lora_config["r"] = self.lora_rank
                 lora_rank = lora_config["r"]
                 full_lora = os.path.join("lora", f"r_{lora_rank}")
                 self.lora_config = LoraConfig(**lora_config)
@@ -63,6 +59,8 @@ class Finetuning:
             if self.lr is not None:
                 model_config["learning_rate"] = float(self.lr)
 
+            if "num_train_epochs" in data_config: 
+                model_config["num_train_epochs"] = data_config["num_train_epochs"]
             lr = model_config["learning_rate"]
             lr_str = "{:.0e}".format(lr).replace('e-0', 'e-') # format to scientific notation
             output_dir = os.path.join(model_config["output_dir"], self.data_config["dirname"], full_lora, f"lr_{lr_str}", f"seed_{seed}")
@@ -72,11 +70,20 @@ class Finetuning:
             self.training_arguments = TrainingArguments(**model_config, seed=seed)
 
 
-    def init_dataset(self, dataset, pad_sequences=False): 
+    def init_dataset(self, dataset, pad_sequences=False, test_size=0.2): 
         num_train = self.data_config["num_train"]
         max_length = self.data_config["max_seq_len"]
-        train_dataset = load_data(self.tokenizer, dataset, split=self.data_config["train_split_name"], num_train=num_train, max_length=max_length, pad_sequences=pad_sequences, text_field=self.data_config["text_field"])
-        val_dataset = load_data(self.tokenizer, dataset, split=self.data_config["test_split_name"], max_length=max_length, pad_sequences=pad_sequences, text_field=self.data_config["text_field"])
+        streaming = ("streaming" in self.data_config) and (self.data_config["streaming"] is True)
+        if self.data_config["test_split_name"] is None:
+            num_train = int(self.data_config["num_train"] / (1 - test_size))
+
+        train_dataset = load_data(self.tokenizer, dataset, split=self.data_config["train_split_name"], num_train=num_train, max_length=max_length, pad_sequences=pad_sequences, text_field=self.data_config["text_field"], streaming=streaming)
+        if self.data_config["test_split_name"] is None: # split train dataset into train and val
+            train_dataset, val_dataset = train_dataset.train_test_split(train_dataset, test_size=test_size)
+        else:
+            
+            val_dataset = load_data(self.tokenizer, dataset, split=self.data_config["test_split_name"], max_length=max_length, pad_sequences=pad_sequences, text_field=self.data_config["text_field"], streaming=streaming)
+            
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
 
@@ -154,9 +161,6 @@ if __name__ == "__main__":
 
     print("Using GPU(s): ", os.environ["CUDA_VISIBLE_DEVICES"])
     set_seed(seed)
-    
-    if lora and lr=="2e-5":
-        lr="2e-2"
     with open(dataset_config, "r") as f:
         dataset_config = json.load(f)
     datasets = dataset_config[domain]

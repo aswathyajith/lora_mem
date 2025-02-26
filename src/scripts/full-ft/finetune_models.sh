@@ -12,9 +12,9 @@ source /home/aswathy/miniconda3/etc/profile.d/conda.sh
 conda activate lora_mem
 cd /net/projects/clab/aswathy/projects/lora_mem
 
-model_sizes=('1.4b')
-domains=('legal')
-lrs=('2e-4' '2e-6')
+model_sizes=('160m' '1.4b' '410m')
+domains=('wiki')
+lrs=('2e-5' '2e-6' '2e-7')
 wandb offline
 wandb disabled
 seeds=(1 2 3)
