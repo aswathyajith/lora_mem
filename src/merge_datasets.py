@@ -6,8 +6,8 @@ import os
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_path", type=str, default="data/output_token_info/pythia-1.4b/legal")
-    parser.add_argument("--output_dir", type=str, default="docs/data")
+    parser.add_argument("--data_path", type=str, default="data/output_token_info/pythia-1.4b/legal/us_bills")
+    parser.add_argument("--output_dir", type=str, default="docs/data/legal/us_bills")
     parser.add_argument("--model1", type=str, default="lora")
     parser.add_argument("--model2", type=str, default="full")
     parser.add_argument("--model1_seed", type=int, default=1)
@@ -49,6 +49,10 @@ if __name__ == "__main__":
     model1_df = pd.read_csv(model1_path)
     model2_df = pd.read_csv(model2_path)
 
+    print("# base model predictions: ", len(base_df))
+    print("# model 1 predictions: ", len(model1_df))
+    print("# model 2 predictions: ", len(model2_df))
+
     if model1_prefix == model2_prefix: 
         model1_prefix = model1_prefix + f"_{model1_seed}"
         model2_prefix = model2_prefix + f"_{model2_seed}"
@@ -72,12 +76,9 @@ if __name__ == "__main__":
     model1_df = rename_cols(model1_df, model1_prefix)
     model2_df = rename_cols(model2_df, model2_prefix)
 
-    # Merge dfs
-    print(f"Merging base with {model1}")
-
-    merged_df = base_df.merge(model1_df, on=["seq_id", "in_tokens"])
-    print(f"Merging with {model2}")
-    merged_df = merged_df.merge(model2_df, on=["seq_id", "in_tokens"])
+    model1_df = model1_df[[f"{model1_prefix}_"+col for col in ["prob", "rank", "top_k_pred_tokens", "top_k_pred_probs"]]]
+    model2_df = model2_df[[f"{model2_prefix}_"+col for col in ["prob", "rank", "top_k_pred_tokens", "top_k_pred_probs"]]]
+    merged_df = pd.concat([base_df, model1_df, model2_df], axis=1)
     merged_df["ft_prob_diff"] = merged_df[f"{model1_prefix}_prob"] - merged_df[f"{model2_prefix}_prob"]
     merged_df = merged_df[abs(merged_df["ft_prob_diff"]) > 0.1]
     seq_ids = list(set(merged_df.seq_id))
@@ -90,5 +91,5 @@ if __name__ == "__main__":
     merged_df["wrapped_context"] = merged_df["in_tokens"].apply(
         lambda t: "<br>".join(textwrap.wrap(t))
     )
-    merged_df = merged_df[["wrapped_context", "curr_token", "base_prob", "lora_r16_prob", "full_prob", "ft_prob_diff", "rel_prev"]]
+    merged_df = merged_df[["wrapped_context", "curr_token", "base_prob", f"{model1_prefix}_prob", f"{model2_prefix}_prob", "ft_prob_diff", "rel_prev", "curr_token_freq"]]
     merged_df.to_json(output_path, orient="records")

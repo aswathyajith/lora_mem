@@ -23,11 +23,10 @@ class Finetuning:
         self.data_config = None
         
         
-    def load_model_and_configs(self, data_config, model_config_path, lora_config_path=None):
-        seed = self.seed
-        self.data_config = data_config
+    def load_model(self, data_config, model_config_path, lora_config_path=None):
+        
+        
         device_map="auto"
-
         model = AutoModelForCausalLM.from_pretrained(
             self.model_name, 
             device_map=device_map)
@@ -35,11 +34,13 @@ class Finetuning:
         model.config.use_cache = False # silence the warnings. Please re-enable for inference!
         self.model = model
 
-        tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        tokenizer = AutoTokenizer.from_pretrained(self.model_name, device_map=device_map)
         tokenizer.pad_token = tokenizer.eos_token
         self.tokenizer = tokenizer
 
-        # print(model)
+    def load_configs(self, data_config, model_config_path, lora_config_path=None):
+        seed = self.seed
+        self.data_config = data_config
         full_lora = "full-ft"
         if self.lora and (lora_config_path is not None):
             with open(lora_config_path, 'r') as f:
@@ -53,8 +54,6 @@ class Finetuning:
 
         with open(model_config_path, "r") as f:
             model_config = json.load(f)
-            if self.lora: 
-                full_lora = os.path.join("lora", f"r_{lora_rank}")
 
             if self.lr is not None:
                 model_config["learning_rate"] = float(self.lr)
@@ -79,7 +78,9 @@ class Finetuning:
 
         train_dataset = load_data(self.tokenizer, dataset, split=self.data_config["train_split_name"], num_train=num_train, max_length=max_length, pad_sequences=pad_sequences, text_field=self.data_config["text_field"], streaming=streaming)
         if self.data_config["test_split_name"] is None: # split train dataset into train and val
-            train_dataset, val_dataset = train_dataset.train_test_split(train_dataset, test_size=test_size)
+            ds = train_dataset.train_test_split(test_size=test_size)
+            train_dataset = ds["train"]
+            val_dataset = ds["test"]
         else:
             
             val_dataset = load_data(self.tokenizer, dataset, split=self.data_config["test_split_name"], max_length=max_length, pad_sequences=pad_sequences, text_field=self.data_config["text_field"], streaming=streaming)
@@ -93,7 +94,8 @@ class Finetuning:
             # Set supervised fine-tuning parameters
             with open(sft_config_path, "r") as f:
                 sft_config = json.load(f)
-                
+            print(self.train_dataset)
+            print(self.val_dataset)
             trainer = SFTTrainer(
                 model=self.model,
                 train_dataset=self.train_dataset,
@@ -141,6 +143,7 @@ if __name__ == "__main__":
     parser.add_argument("--domain", default="wiki", type=str, help="Domain of the dataset")
     parser.add_argument("--dataset_config", default="configs/dataset_config.json", type=str, help="dataset[:subset]")
     parser.add_argument("--seed", default=1, type=int, help="Seed for reproducibility")
+    parser.add_argument("--lora_rank", default=None, type=int, help="Lora rank")
     parser.add_argument("--lora", action=argparse.BooleanOptionalAction, help="If this flag is set, Lora finetuning will be done (full parameter finetuning is the default)", default=False)
     parser.add_argument("--resume_from_checkpoint", action=argparse.BooleanOptionalAction, help="If this flag is set, finetuning will resume from the last checkpoint", default=False)
     parser.add_argument("--pad_sequences", action=argparse.BooleanOptionalAction, help="If this flag is set, include sequences shorter than max_len by padding them (by default, this flag is not set, i.e., we only include consider instances with at least max_seq_len tokens)")
@@ -156,13 +159,16 @@ if __name__ == "__main__":
     dataset_config = args.dataset_config
     lora = args.lora
     seed = args.seed
+    lora_rank = args.lora_rank
     resume_from_checkpoint = args.resume_from_checkpoint
     pad_sequences = args.pad_sequences
 
     print("Using GPU(s): ", os.environ["CUDA_VISIBLE_DEVICES"])
     set_seed(seed)
+    
     with open(dataset_config, "r") as f:
         dataset_config = json.load(f)
+        
     datasets = dataset_config[domain]
     
     
@@ -172,8 +178,13 @@ if __name__ == "__main__":
         if "[skip]" in dataset: 
             print(f"Skipping dataset: {dataset.replace('[skip]', '')}")
             continue 
-        ft = Finetuning(base_model, domain, lora, seed, lr)
         data_config = datasets[dataset]
-        ft.load_model_and_configs(data_config, model_config_path, lora_config_path)
+        ft = Finetuning(base_model, domain, lora, seed, lr, lora_rank)
+        ft.load_configs(data_config, model_config_path, lora_config_path)
+        model_save_dir = ft.model_dir
+        if os.path.exists(model_save_dir) and "final_model" in os.listdir(model_save_dir):
+            print(f"Skipping {dataset} as it is already finetuned")
+            continue
+        ft.load_model(data_config, model_config_path, lora_config_path)
         ft.init_dataset(dataset, pad_sequences=pad_sequences)
-        ft.finetune_model(sft_config_path, resume_from_checkpoint=resume_from_checkpoint)
+        ft.finetune_model(sft_config_path, field=data_config["text_field"], resume_from_checkpoint=resume_from_checkpoint)
