@@ -1,9 +1,10 @@
 {
     "legal": {
-        "theatticusproject/cuad-qa": {
+        "legal/cuad": {
             "subdir": "legal/cuad",
+            "hf_repo": "theatticusproject/cuad-qa",
             "n_samples": -1, 
-            "max_seq_len": 2048,
+            "max_seq_lens": [2048],
             "train_split_name": "train",
             "test_split_name": "test",
             "text_field": "context",
@@ -15,10 +16,11 @@
             },
             "models": ["base", "lora", "full"]
         }, 
-        "[skip]pile-of-law/pile-of-law:us_bills": {
+        "[skip]legal/us_bills": {
             "subdir": "legal/us_bills",
+            "hf_repo": "pile-of-law/pile-of-law:us_bills",
             "n_samples": 1024,
-            "max_seq_len": 2048,
+            "max_seq_lens": [2048],
             "train_split_name": "train",
             "test_split_name": "validation",
             "text_field": "text",
@@ -33,10 +35,11 @@
         }
     }  ,
     "biomed": {
-        "bigbio/chemprot:chemprot_full_source": {
+        "bigbio/chemprot": {
             "subdir": "biomed/chemprot",
+            "hf_repo": "bigbio/chemprot:chemprot_full_source",
             "n_samples": -1, 
-            "max_seq_len": 2048,
+            "max_seq_lens": [2048],
             "train_split_name": "train",
             "test_split_name": "validation",
             "text_field": "text",
@@ -49,11 +52,55 @@
             "models": ["base", "lora", "full"]
         }
     },
+    "code": {
+        "code/starcoder": {
+            "hf_repo": "lparkourer10/starcoder-python5b",
+            "subdir": "code/starcoder",
+            "n_samples": 2048, 
+            "num_train": 8000,
+            "max_seq_lens": [2048],
+            "train_split_name": "train",
+            "test_split_name": null,
+            "test_size": 0.2,
+            "text_field": "content",
+            "pythia-1.4b": {
+                "lora_rank_lr": {
+                    "16": "2e-4"
+                },
+                "full_lr": "2e-6"
+            },
+            "models": ["base", "lora", "full"], 
+            "streaming": true
+        }
+    }, 
+    "math": {
+        "math/open_web_math": {
+            "hf_repo": "open-web-math/open-web-math",
+            "subdir": "math/open_web_math",
+            "num_train": 8000,
+            "n_samples": 1024, 
+            "max_seq_lens": [2048],
+            "train_split_name": "train",
+            "test_split_name": null,
+            "test_size": 0.2,
+            "text_field": "text",
+            "pythia-1.4b": {
+                "lora_rank_lr": {
+                    "16": "2e-3"
+                },
+                "full_lr": "2e-5"
+            },
+            "models": ["base", "lora", "full"], 
+            "streaming": true
+        }
+    }, 
     "wiki": {
-        "wikitext:wikitext-2-raw-v1": {
+        "wiki/wikitext": {
             "subdir": "wiki/wikitext",
-            "num_train": -1, 
-            "max_seq_len": 2048,
+            "hf_repo": "wikitext:wikitext-2-raw-v1",
+            "n_samples": 2048, 
+            "num_train": -1,
+            "max_seq_lens": [128, 256, 512, 1024, 2048],
             "train_split_name": "train",
             "test_split_name": "validation",
             "text_field": "text",
@@ -63,7 +110,26 @@
                 },
                 "full_lr": "2e-6"
             },
+            "models": ["lora", "base", "full"]
+        }
+    } , 
+    "bible": {
+        "bible/bible_corpus_eng": {
+            "subdir": "bible/bible_corpus_eng",
+            "hf_repo": "davidstap/biblenlp-corpus-mmteb:eng-arb",
+            "n_samples": 2048, 
+            "num_train": -1,
+            "max_seq_lens": [128, 256, 512, 1024, 2048],
+            "train_split_name": "train",
+            "test_split_name": "validation",
+            "text_field": "eng",
+            "pythia-1.4b": {
+                "lora_rank_lr": {
+                    "16": "2e-4"
+                },
+                "full_lr": "2e-6"
+            },
             "models": ["base", "lora", "full"]
         }
-    }   
+    }  
 }

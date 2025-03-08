@@ -1,0 +1,278 @@
+{
+    "legal/cuad/train/sample_all": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/legal/cuad/train/sample_all/base/tkn_freq_probs.csv"
+        },
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/legal/cuad/train/sample_all/lora/r_16/lr_2e-3"
+        },
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/legal/cuad/train/sample_all/full-ft/lr_2e-5"
+        }
+    }, 
+    "biomed/chemprot/train/sample_all": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/biomed/chemprot/train/sample_all/base/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/biomed/chemprot/train/sample_all/lora/r_16/lr_2e-4"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/biomed/chemprot/train/sample_all/full-ft/lr_2e-6"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_4096/max_seq_len_128/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_4096/max_seq_len_128/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_4096/max_seq_len_128/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_4096/max_seq_len_128/sample_2048"
+        }
+    },
+    "bible/bible_corpus_eng/train/base/num_train_all/max_seq_len_2048/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/bible/bible_corpus_eng/train/base/num_train_all/max_seq_len_2048/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/bible/bible_corpus_eng/train/full-ft/lr_2e-6/num_train_all/max_seq_len_2048/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/bible/bible_corpus_eng/train/lora/r_16/lr_2e-4/num_train_all/max_seq_len_2048/sample_2048"
+        }
+    }, 
+    "code/starcoder/train/num_train_8000/max_seq_len_2048/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/code/starcoder/train/base/num_train_8000/max_seq_len_2048/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/code/starcoder/train/lora/r_16/lr_2e-4/num_train_8000/max_seq_len_2048/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/code/starcoder/train/full-ft/lr_2e-6/num_train_8000/max_seq_len_2048/sample_2048"
+        }
+    }, 
+    "math/open_web_math/train/num_train_8000/max_seq_len_2048/sample_1024": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/math/open_web_math/train/base/num_train_8000/max_seq_len_2048/sample_1024/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/math/open_web_math/train/lora/r_16/lr_2e-3/num_train_8000/max_seq_len_2048/sample_1024"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/math/open_web_math/train/full-ft/lr_2e-5/num_train_8000/max_seq_len_2048/sample_1024"
+        }
+    },
+    "wiki/wikitext/train/num_train_4096/max_seq_len_256/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_4096/max_seq_len_256/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_4096/max_seq_len_256/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_4096/max_seq_len_256/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_4096/max_seq_len_512/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_4096/max_seq_len_512/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_4096/max_seq_len_512/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_4096/max_seq_len_256/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_4096/max_seq_len_1024/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_4096/max_seq_len_1024/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_4096/max_seq_len_1024/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_4096/max_seq_len_1024/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_4096/max_seq_len_2048/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_4096/max_seq_len_2048/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_4096/max_seq_len_2048/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_4096/max_seq_len_2048/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_8192/max_seq_len_128/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_8192/max_seq_len_128/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_8192/max_seq_len_128/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_8192/max_seq_len_128/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_8192/max_seq_len_256/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_8192/max_seq_len_256/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_8192/max_seq_len_256/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_8192/max_seq_len_256/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_8192/max_seq_len_512/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_8192/num_train_8192/max_seq_len_512/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_8192/max_seq_len_512/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_8192/max_seq_len_512/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_8192/max_seq_len_1024/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_8192/num_train_8192/max_seq_len_1024/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_8192/max_seq_len_1024/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_8192/max_seq_len_1024/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_8192/max_seq_len_2048/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_8192/num_train_8192/max_seq_len_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_8192/max_seq_len_2048/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_8192/max_seq_len_2048/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_16384/max_seq_len_128/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_16384/max_seq_len_128/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_16384/max_seq_len_128/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_16384/max_seq_len_128/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_16384/max_seq_len_256/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_16384/max_seq_len_256/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_16384/max_seq_len_256/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_16384/max_seq_len_256/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_16384/max_seq_len_512/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_16384/max_seq_len_512/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_16384/max_seq_len_512/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_16384/max_seq_len_512/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_16384/max_seq_len_1024/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_16384/max_seq_len_1024/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_16384/max_seq_len_1024/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_16384/max_seq_len_1024/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_16384/max_seq_len_2048/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_16384/max_seq_len_2048/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_16384/max_seq_len_2048/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_16384/max_seq_len_2048/sample_2048"
+        }
+    }, 
+
+    "wiki/wikitext/train/num_train_all/max_seq_len_128/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_all/max_seq_len_128/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_all/max_seq_len_128/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_all/max_seq_len_128/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_all/max_seq_len_256/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_all/max_seq_len_256/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_all/max_seq_len_256/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_all/max_seq_len_256/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_all/max_seq_len_512/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_all/max_seq_len_512/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_all/max_seq_len_512/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_all/max_seq_len_512/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_all/max_seq_len_1024/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_all/max_seq_len_1024/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_all/max_seq_len_1024/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_all/max_seq_len_1024/sample_2048"
+        }
+    }, 
+    "wiki/wikitext/train/num_train_all/max_seq_len_2048/sample_2048": {
+        "base": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/base/num_train_all/max_seq_len_2048/sample_2048/tkn_freq_probs.csv"
+        }, 
+        "lora_r16": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/lora/r_16/lr_2e-4/num_train_all/max_seq_len_2048/sample_2048"
+        }, 
+        "full": {
+            "path": "results/model_gens/pythia-1.4b/wiki/wikitext/train/full-ft/lr_2e-6/num_train_all/max_seq_len_2048/sample_2048"
+        }
+    }
+}

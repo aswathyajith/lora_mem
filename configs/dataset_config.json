@@ -1,40 +1,101 @@
 {
     "legal": {
-        "[skip]theatticusproject/cuad-qa": {
+        "legal/cuad": {
             "dirname": "legal/cuad",
+            "hf_repo": "theatticusproject/cuad-qa",
             "num_train": -1, 
-            "max_seq_len": 2048,
+            "max_seq_lens": [2048],
             "train_split_name": "train",
             "test_split_name": "test",
             "text_field": "context"
         }, 
-        "pile-of-law/pile-of-law:us_bills": {
+        "legal/us_bills": {
             "dirname": "legal/us_bills",
+            "hf_repo": "pile-of-law/pile-of-law:us_bills",
             "num_train": -1,
-            "max_seq_len": 2048,
+            "max_seq_lens": [2048],
             "train_split_name": "train",
             "test_split_name": "validation",
             "text_field": "text"
         }
     }  ,
     "biomed": {
-        "bigbio/biomrc:biomrc_large_A_bigbio_qa": {
-            "dirname": "biomed/biomrc",
+        "bigbio/chemprot": {
+            "dirname": "biomed/chemprot",
+            "hf_repo": "bigbio/chemprot:chemprot_full_source",
             "num_train": -1, 
-            "max_seq_len": 2048,
+            "max_seq_lens": [2048],
             "train_split_name": "train",
-            "test_split_name": "test",
-            "text_field": "context"
+            "test_split_name": "validation",
+            "text_field": "text",
+            "num_train_epochs": 20
         }
     },
     "wiki": {
-        "wikitext:wikitext-2-raw-v1": {
+        "wiki/wikitext": {
             "dirname": "wiki/wikitext",
-            "num_train": 4096, 
-            "max_seq_len": 128,
+            "hf_repo": "wikitext/wikitext-2-raw-v1",
+            "num_train": -1,
             "train_split_name": "train",
             "test_split_name": "validation",
-            "text_field": "text"
+            "text_field": "text",
+            "max_seq_lens": [128, 2048]
         }
-    }   
+    },   
+    "bible": {
+        "bible/bible_corpus_eng": {
+            "hf_repo": "davidstap/biblenlp-corpus-mmteb:eng-arb",
+            "dirname": "bible/bible_corpus_eng",
+            "num_train": -1, 
+            "max_seq_lens": [2048],
+            "train_split_name": "train",
+            "test_split_name": "validation",
+            "text_field": "eng"
+        }, 
+        "bible/bible_corpus_arb": {
+                "hf_repo": "davidstap/biblenlp-corpus-mmteb:eng-arb",
+                "dirname": "bible/bible_corpus_arb",
+                "num_train": -1, 
+                "max_seq_lens": [2048],
+                "train_split_name": "train",
+                "test_split_name": "validation",
+                "text_field": "eng"
+        }
+    },
+    "math": {
+        "math/open_web_math" : {
+            "hf_repo": "open-web-math/open-web-math",
+            "dirname": "math/open_web_math",
+            "num_train": 8000, 
+            "max_seq_lens": [2048],
+            "train_split_name": "train",
+            "test_split_name": null,
+            "text_field": "text", 
+            "streaming": true
+        }
+    },
+    "code": {
+        "code/starcoder": {
+            "hf_repo": "lparkourer10/starcoder-python5b",
+            "dirname": "code/starcoder",
+            "num_train": 8000, 
+            "max_seq_lens": [2048],
+            "train_split_name": "train",
+            "test_split_name": null,
+            "text_field": "content",
+            "streaming": true
+        }
+    }, 
+    "social": {
+        "social/exorde": {
+            "hf_repo": "Exorde/exorde-social-media-one-month-2024",
+            "dirname": "social/exorde",
+            "num_train": 8000, 
+            "max_seq_lens": [2048],
+            "train_split_name": "train",
+            "test_split_name": null,
+            "text_field": "original_text", 
+            "streaming": true
+        }
+    }
 }
