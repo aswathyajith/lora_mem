@@ -54,8 +54,37 @@ def preprocess_dataset(ds, dataset="bigbio/muchmore:muchmore_en_bigbio_kb"):
         
         ds = ds.map(extract_text)
     return ds
-def load_data(tokenizer, dataset="wikitext:wikitext-2-raw-v1", split="train", num_train=-1, max_length=128, batch_size=None, pad_sequences=False, text_field="text", streaming=False): 
-    
+
+def chunk_long_sequences(sample, tokenizer, max_length, text_field="text"):
+    # Function to chunk sequences for packing
+
+    chunk_ids = []
+    chunk_masks = []
+    chunk_texts = []
+
+    for ids, mask in zip(sample["input_ids"], sample["attention_mask"]):
+        for i in range(0, len(ids), max_length):
+            chunked_ids = ids[i:i+max_length]
+            chunked_mask = mask[i:i+max_length]
+
+            # Decode chunk ids to get text
+            chunked_text = tokenizer.decode(chunked_ids)
+
+            
+            chunk_ids.append(chunked_ids)
+            chunk_masks.append(chunked_mask)
+            chunk_texts.append(chunked_text)
+
+    chunks_dict = {
+        'input_ids': chunk_ids,
+        'attention_mask': chunk_masks,
+        text_field: chunk_texts
+    }
+
+    return chunks_dict
+
+def load_data(tokenizer, dataset="wikitext:wikitext-2-raw-v1", split="train", num_train=-1, max_length=128, batch_size=None, pad_sequences=False, text_field="text", streaming=False, packing=False): 
+    print("packing: ", packing)
     ds_name = dataset.split(":")
     print(ds_name)
     if len(ds_name) > 1: # has subset 
@@ -91,25 +120,51 @@ def load_data(tokenizer, dataset="wikitext:wikitext-2-raw-v1", split="train", nu
     # print(ds[text_field][0][:2048], flush=True)
     
     # Remove duplicates
+    set_seed(42)
     uniq_text = sorted(list(set(ds[text_field])))
     df = pd.DataFrame({text_field: uniq_text})
     uniq_ds = Dataset.from_pandas(df)
-    print("# unique Train samples: ", len(ds))
-    ds = uniq_ds.map(tokenize, batched=True, fn_kwargs={"tokenizer": tokenizer, "field": text_field, "max_length": max_length})
+    print("# Total Train samples: ", len(ds))
+    print("# unique Train samples: ", len(uniq_ds))
+    ds = uniq_ds.map(
+        tokenize, 
+        batched=True, 
+        fn_kwargs={
+            "tokenizer": tokenizer, 
+            "field": text_field, 
+            "max_length": max_length, 
+            "packing": packing
+        }
+    )
 
-    if not pad_sequences:
-        ds = ds.filter(lambda sample: sample['input_ids'][max_length-1] != tokenizer.eos_token_id)
-
-    print(f"Number of samples with length >= {max_length}: {len(ds)}")
+    if pad_sequences:
+        print(f"Padding sequences with length < {max_length}\nNumber of samples: {len(ds)}")
+    else:
+        if not packing: 
+            ds = ds.filter(lambda sample: sample['input_ids'][max_length-1] != tokenizer.eos_token_id)
+            print(f"Number of samples with length >= {max_length}: {len(ds)}")
+    
+        
         
     # setting seed for reproducibility 
     # (we don't need to set this as the same value as the arg seed)
     ds = ds.shuffle(seed=42) 
-    if num_train > 0:
+    if (num_train > 0) and (len(ds) > num_train):
+        print(f"selecting first {num_train} samples")
         ds = ds.select(range(num_train))
     
-    print("Loaded dataset size: ", len(ds), flush=True)
-    print(ds)
+    if packing:
+        print("Chunking sequences for packing")
+        ds = ds.map(
+            chunk_long_sequences, 
+            batched=True, 
+            fn_kwargs={
+                "tokenizer": tokenizer, 
+                "max_length": max_length, 
+                "text_field": text_field})
+
+    print("Final dataset size: ", len(ds), flush=True)
+    print(ds[0])
     return ds
 
 def prompt_model(model, tokenizer, batch, prompt_context_len, print_seqs=False, tokenized=False):
@@ -130,8 +185,23 @@ def prompt_model(model, tokenizer, batch, prompt_context_len, print_seqs=False, 
             print("INPUT PROMPTS + MODEL COMPLETIONS:", model_comp)
         return batch, inp_prompt, model_comp, full_inp_ids, model_comp_ids
 
-def tokenize(sample, tokenizer, field='text', max_length=128):
-    return tokenizer(sample[field], padding='max_length', truncation=True, max_length=max_length, return_tensors='pt')
+def tokenize(sample, tokenizer, field='text', max_length=128, packing=False):
+    if packing:
+        return tokenizer(
+            sample[field], 
+            padding=False, 
+            truncation=False, 
+            max_length=None, 
+            return_tensors=None
+        )
+    else:
+        return tokenizer(
+            sample[field], 
+            padding='max_length', 
+            truncation=True, 
+            max_length=max_length, 
+            return_tensors='pt'
+        )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
