@@ -178,11 +178,11 @@
         // Function definitions
         function createPlot(data) {
             const trace = {
-                // type: 'scatter3d',
-                // mode: 'markers',
-                // x: data.map(d => d.full_prob),
-                // y: data.map(d => d.lora_r16_prob),
-                // z: data.map(d => d.base_prob),
+                type: 'scatter3d',
+                mode: 'markers',
+                x: data.map(d => d.full_prob),
+                y: data.map(d => d.lora_r16_prob),
+                z: data.map(d => d.base_prob),
                 // marker: {
                 //     size: 2,
                 //     color: data.map(d => d.rel_prev),
