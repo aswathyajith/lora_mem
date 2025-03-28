@@ -170,7 +170,7 @@
 
         function getDatasetFromURL() {
             const params = new URLSearchParams(window.location.search);
-            const dataset = params.get('dataset') || 'legal/us_bills'; // default dataset if none specified
+            const dataset = params.get('dataset') || 'wiki/wikitext'; // default dataset if none specified
             const seed = params.get('seed') || '1'; // default seed if none specified
             return `./data/${dataset}/seed_${seed}/lora_r16_full_merged.json`;
         }
