@@ -144,7 +144,8 @@ def load_data(
         streaming: bool = False, 
         packing: bool = False, 
         inference: bool = False, 
-        n_train_tkns: int | str | None = None, 
+        n_tkns: int | str | None = None, 
+        downloaded: bool = False, 
         **kwargs
     ): 
     '''
@@ -152,9 +153,11 @@ def load_data(
     '''
     print("packing: ", packing)
 
-    if streaming: 
-        ds_loc = os.path.join(os.environ["HF_DATASETS_CACHE"], dataset)
-        ds = load_from_disk(ds_loc, split=split, streaming=True)
+    if downloaded: 
+        ds_local_path = os.path.join(os.environ["HF_DATASETS_CACHE"], dataset)
+        print("Loading dataset from local path: ", ds_local_path)
+        ds = load_from_disk(ds_local_path)
+        ds = ds[split]
             
     else: 
         ds_name = dataset.split(":")
@@ -166,9 +169,9 @@ def load_data(
         else: 
             ds = load_dataset(ds_name[0], split=split)
     
-    if n_train_tkns is not None:
-        if isinstance(n_train_tkns, str):
-            n_train_tkns = int(float(n_train_tkns))
+    if n_tkns is not None:
+        if isinstance(n_tkns, str):
+            n_tkns = int(float(n_tkns))
             num_train = -1 # Will load all samples in data
 
     ds = preprocess_dataset(ds, dataset)
@@ -204,23 +207,23 @@ def load_data(
     # setting seed for reproducibility 
     # (we don't need to set this as the same value as the arg seed)
     ds = ds.shuffle(seed=42) 
-    if ((num_train > 0) and (len(ds) > num_train)) or (n_train_tkns is not None):
+    if ((num_train > 0) and (len(ds) > num_train)) or (n_tkns is not None):
         
-        if n_train_tkns is not None:
-            print(f"selecting sequences to get {n_train_tkns} token budget after packing")
-            ds = select_max_tokens(ds, tokenizer, text_field, n_train_tkns)
+        if n_tkns is not None:
+            print(f"selecting sequences to get {n_tkns} token budget after packing")
+            ds = select_max_tokens(ds, tokenizer, text_field, n_tkns)
             if streaming:
                 n_tkns = sum([1 + len(sample['input_ids']) for sample in ds]) - 1
-                assert n_tkns == n_train_tkns, f"Number of tokens in selected documents (|T| = {n_tkns}) is less than token budget (|T_b| = {n_train_tkns})\nDownload more samples or decrease n_train_tkns"
+                assert n_tkns == n_tkns, f"Number of tokens in selected documents (|T| = {n_tkns}) is less than token budget (|T_b| = {n_tkns})\nDownload more samples or decrease n_tkns"
 
             if split == "train":
-                print(f"Number of sequences in epoch: {n_train_tkns / max_length}")
-                steps_per_epoch = np.ceil(n_train_tkns / (max_length * 256)).astype(int)
+                print(f"Number of sequences in epoch: {n_tkns / max_length}")
+                steps_per_epoch = np.ceil(n_tkns / (max_length * 256)).astype(int)
                 print(f"Number of steps in epoch: {steps_per_epoch}")
                 print(f"Total training steps: {steps_per_epoch * 10}")
         else:
             print(f"selecting {num_train} random samples")
-            print(f"WARNING: n_train_tkns is not specified, {len(ds)} documents will be selected from the dataset")
+            print(f"WARNING: n_tkns is not specified, {len(ds)} documents will be selected from the dataset")
             ds = ds.select(range(num_train))
             
     if packing and inference: # Pack dataset for inference
@@ -300,9 +303,11 @@ def get_pair_counts(dataset: Dataset):
     """
     
     assert "input_ids" in dataset.column_names, "input_ids must be a feature in the dataset"
-    input_ids = dataset["input_ids"]
 
+    input_ids = dataset["input_ids"]
     pair_token_freqs = defaultdict(int)
+    print("Computing token frequencies..", flush=True)
+    
     for i in input_ids:
         for p_x in range(len(i)): 
             x = i[p_x]

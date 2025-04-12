@@ -28,7 +28,7 @@ def filter_config_df(df, indices_list, domains, datasets, split_name, **kwargs):
 
 def construct_save_dir(path_to_save_freqs, kwargs):
     packing = "packing" if kwargs["packing"] else "no_packing"
-    save_dir = os.path.join(path_to_save_freqs, packing, "perturbations", kwargs["perturbation"], kwargs["split"], kwargs["domain"], kwargs["dataset_name"], f"max_seq_len_{kwargs['max_seq_len']}", f"n_train_tkns_{kwargs['n_train_tkns']}")
+    save_dir = os.path.join(path_to_save_freqs, packing, "perturbations", kwargs["perturbation"], kwargs["split"], kwargs["domain"], kwargs["dataset_name"], f"max_seq_len_{kwargs['max_seq_len']}", f"n_tkns_{kwargs['n_tkns']}")
     return save_dir
 
 def main():
@@ -49,7 +49,14 @@ def main():
 
     # Load config 
     print("Loading config_df")
-    config_df = pd.read_csv(config_df_path)
+    config_df = pd.read_csv(
+        config_df_path, dtype={
+            "streaming": bool, 
+            "skip": bool, 
+            "n_tkns": str, 
+        }
+    )
+    print("Example n_tkns: ", config_df.n_tkns.values[0])
     print(f"Total number of configurations: {len(config_df)}")
     # Filter config_df for args passed
     config_df = filter_config_df(config_df, **filter_args)
@@ -69,19 +76,7 @@ def main():
 
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-    #        tokenizer: AutoTokenizer, 
-    #     dataset: str = "wikitext:wikitext-2-raw-v1", 
-    #     split: str = "train", 
-    #     max_length: int = 128, 
-    #     pad_sequences: bool = False, 
-    #     text_field: str = "text", 
-    #     streaming: bool = False, 
-    #     packing: bool = False, 
-    #     inference: bool = False, 
-    #     n_train_tkns: int | str | None = None, 
-    #     stream_size: int = 10000, 
-    #     **kwargs
-    # )
+
         # Load tokenizer and dataset 
         _, tokenizer = load_model(args.base_model, lora_adapter_path = None)
         dataset = load_data(tokenizer, **kwargs)

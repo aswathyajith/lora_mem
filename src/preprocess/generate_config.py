@@ -9,13 +9,13 @@ with open(path_to_preprocess_config, "r") as f:
     preprocess_config = json.load(f)
 
 max_seq_len = preprocess_config["max_seq_len"]
-n_train_tkns = preprocess_config["n_train_tkns"]
+n_tkns = preprocess_config["n_tkns"]
 n_test_tkns = preprocess_config["n_test_tkns"]
 packing = preprocess_config["packing"]
 perturbations = preprocess_config["perturbations"]
 
-n_test_tkns = preprocess_config["n_test_tkns"]
 configurations_list = []
+
 for domain, datasets in preprocess_config["domains"].items():
     print(f"Generating configs for {domain}")
     for dataset_config in datasets:
@@ -24,6 +24,8 @@ for domain, datasets in preprocess_config["domains"].items():
             continue
 
         splits = dataset_config.get("splits", {})
+        
+
         eval_on_splits = dataset_config.get("eval_on_splits", [])
         if len(eval_on_splits) == 0:
             print(f"No splits to evaluate on for {dataset_name}")
@@ -40,8 +42,9 @@ for domain, datasets in preprocess_config["domains"].items():
                 eval_split_names.append(split_name)
 
         streaming = dataset_config.get("streaming", False)
+        downloaded = dataset_config.get("downloaded", False)
         text_field = dataset_config["text_field"]
-        dataset = dataset_config["dataset"]
+        dataset = dataset_config["dataset_name"] if downloaded else dataset_config["dataset"]
 
         curr_dataset = {
             "domain": domain,
@@ -49,7 +52,8 @@ for domain, datasets in preprocess_config["domains"].items():
             "dataset_name": dataset_name,
             "text_field": text_field,
             "split": eval_split_names,
-            "streaming": streaming,
+            "streaming": streaming, 
+            "downloaded": downloaded
         }
 
         # Convert all values to lists to apply itertools.product
@@ -66,8 +70,7 @@ for domain, datasets in preprocess_config["domains"].items():
 # Cross with max_seq_len
 settings = {
     "max_seq_len": max_seq_len,
-    "n_train_tkns": n_train_tkns,
-    "n_test_tkns": n_test_tkns,
+    "n_tkns": n_tkns,
     "packing": packing,
     "perturbation": perturbations
 }
@@ -86,6 +89,6 @@ configurations_list = [
 ]
 
 configurations_df = pd.DataFrame(configurations_list)
-configurations_df.loc[configurations_df["split"] != "train", "n_train_tkns"] = n_test_tkns
+configurations_df.loc[configurations_df["split"] != "train", "n_tkns"] = n_test_tkns
 os.makedirs(os.path.dirname(path_to_save_configs), exist_ok=True)
 configurations_df.to_csv(path_to_save_configs, index=False)

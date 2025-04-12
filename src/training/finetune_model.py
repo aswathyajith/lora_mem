@@ -5,8 +5,8 @@ from trl import SFTTrainer
 import re
 import argparse
 import json
-from utils.model import *
-from utils.data import *
+from src.utils.model import *
+from src.utils.data import *
 
 class Finetuning:
     def __init__(self, model_name, domain, lora, seed, lr, lora_rank=None, max_seq_len=128, packing=False, perturbations=None, n_train_tkns=None, stream_size=None):
@@ -105,19 +105,13 @@ class Finetuning:
         Initialize the dataset for finetuning.
         """
         num_train = self.data_config["num_train"]
-        streaming = ("streaming" in self.data_config) and (self.data_config["streaming"] is True)
+        streaming = self.data_config.get("streaming", False)
+        downloaded = self.data_config.get("downloaded", False)
         inference = False
         n_train_tkns = self.n_train_tkns
 
-        # If test_split_name is None, we need to split the train split 
-        # into train and val splits, so upsample the train split to 
-        # account for the val split.
-        if self.data_config["test_split_name"] is None:
-            if num_train != -1:
-                num_train = int(num_train / (1 - test_size))
-
-            if n_train_tkns is not None:
-                n_train_tkns = n_train_tkns + val_tkn_budget
+        if downloaded:
+            dataset = self.data_config["dirname"].split("/")[-1]
             
         train_dataset = load_data(
             self.tokenizer, 
@@ -130,16 +124,22 @@ class Finetuning:
             streaming=streaming, 
             packing=self.packing, 
             inference=inference, 
-            n_train_tkns=n_train_tkns, 
-            stream_size=self.stream_size
+            n_tkns=n_train_tkns, 
+            downloaded=downloaded
         )
 
-        if self.data_config["test_split_name"] is None: # split train dataset into train and val
-            ds = train_dataset.train_test_split(test_size=test_size)
-            train_dataset = ds["train"]
-            val_dataset = ds["test"]
-        else:
-            val_dataset = load_data(self.tokenizer, dataset, split=self.data_config["test_split_name"], max_length=max_length, pad_sequences=pad_sequences, text_field=self.data_config["text_field"], streaming=streaming, packing=self.packing, stream_size=10000, n_train_tkns=val_tkn_budget)
+        val_dataset = load_data(
+            self.tokenizer, 
+            dataset, 
+            split=self.data_config["test_split_name"], 
+            max_length=max_length, 
+            pad_sequences=pad_sequences, 
+            text_field=self.data_config["text_field"], 
+            streaming=streaming, 
+            packing=self.packing,  
+            n_tkns=val_tkn_budget, 
+            downloaded=downloaded
+        )
             
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
