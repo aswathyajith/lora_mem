@@ -67,7 +67,8 @@ def compute_loss(
         tokenizer: AutoTokenizer | None = None,
         dataset: Dataset | None = None,
         text_field: str = "text", 
-        dataset_kwargs: dict | None = None,
+        max_seq_length: int = 64,
+        packing: bool = True
     ):
     """Computes loss of a model on a dataset using SFTTrainer"""
 
@@ -90,6 +91,8 @@ def compute_loss(
         eval_dataset=dataset,
         dataset_text_field=text_field,
         tokenizer=tokenizer,
+        max_seq_length=max_seq_length,
+        eval_packing=packing,
         args=args
     )
     
