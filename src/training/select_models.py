@@ -6,10 +6,10 @@ from src.utils.model import load_model, compute_loss
 from src.utils.data import load_data
 
 DOMAIN_DATASETS = {
-    # "legal": ["us_bills"],
+    "legal": ["us_bills"],
     # "biomed": ["chemprot"],
     "code": ["starcoder"],
-    # "math": ["open_web_math"]
+    "math": ["open_web_math"]
 }
 
 MODEL_DIR_TO_HF_NAME = {
@@ -171,6 +171,7 @@ def main():
     # Example Usage: 
     # python src/find_opt_lr.py --all_models_path models/pythia-1.4b/packing_n_docs/perturbations/none --save_path configs/optimal_lr_n_docs.json --max_seq_lens 64 128 256
     parser.add_argument("--all_models_path", type=str, default="models/pythia-1.4b/packing/perturbations/none")
+    parser.add_argument("--domain", type=str, default="legal")
     parser.add_argument("--max_seq_lens", type=int, default=[64, 128, 256], nargs="+")
     parser.add_argument("--debug", default=False, action="store_true")
     parser.add_argument("--preprocess_config_path", type=str, default="config_dfs/configurations.csv")
@@ -183,7 +184,7 @@ def main():
     preprocess_config_path = args.preprocess_config_path
     
     # List comprehension to get all seed model paths 
-    model_paths = [root for (root, dirs, files) in os.walk(all_models_path) for dir in dirs if ("seed" in dir)]
+    model_paths = [root for (root, dirs, files) in os.walk(all_models_path) for dir in dirs if ("seed" in dir) and (args.domain in root)]
     losses = []
     # Filter out model paths that are not in the predefined domain/datasets
     
