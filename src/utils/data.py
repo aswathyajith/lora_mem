@@ -149,7 +149,7 @@ def load_data(
         **kwargs
     ): 
     '''
-    Loads a dataset from Huggingface, processes it and returns a dataset object.
+    Loads a dataset from Huggingface/local path, processes it and returns a dataset object.
     '''
     print("packing: ", packing)
 
@@ -188,7 +188,8 @@ def load_data(
     print("# unique Train samples: ", len(uniq_ds))
     ds = uniq_ds.map(
         tokenize, 
-        batched=True, 
+        batched=True,
+        batch_size=256,
         fn_kwargs={
             "tokenizer": tokenizer, 
             "field": text_field, 
