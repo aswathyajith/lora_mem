@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import itertools
 import os
+
 path_to_preprocess_config = "configs/preprocess_config.json"
 path_to_save_configs = "config_dfs/configurations.csv"
 
@@ -64,7 +65,7 @@ for domain, datasets in preprocess_config["domains"].items():
         product = list(itertools.product(*curr_dataset.values()))
         for prod_i in product:
             dict_entry = dict(zip(curr_dataset.keys(), prod_i))
-            print(dict_entry)
+            # print(dict_entry)
             configurations_list.append(dict_entry)
     
 # Cross with max_seq_len
@@ -90,5 +91,7 @@ configurations_list = [
 
 configurations_df = pd.DataFrame(configurations_list)
 configurations_df.loc[configurations_df["split"] != "train", "n_tkns"] = n_test_tkns
+configurations_df = configurations_df.drop_duplicates()
 os.makedirs(os.path.dirname(path_to_save_configs), exist_ok=True)
 configurations_df.to_csv(path_to_save_configs, index=False)
+print(f"Saved {len(configurations_df)} configurations to {path_to_save_configs}")
