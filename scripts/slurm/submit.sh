@@ -9,9 +9,6 @@
 #SBATCH --mail-user=aswathy@uchicago.edu
 #SBATCH --nodelist=j001-ds,j002-ds,j003-ds,j004-ds
 
-./scripts/env_setup.sh
-echo "Env setup done"
-pwd
 start_time=$(date)
 start_timestamp=$(date -d "$start_time" +%s)
 
@@ -56,5 +53,6 @@ minutes=$(( (elapsed_time % 3600) / 60 ))
 seconds=$((elapsed_time % 60))
 
 echo "JOB_ID: $SLURM_JOB_ID"
-echo "START TIME: $(date)"
-echo "END TIME: $(date)"
+echo "START TIME: $(start_time)"
+echo "END TIME: $(end_time)"
+echo "ELAPSED TIME: $hours:$minutes:$seconds"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source /net/projects/clab/aswathy/projects/lora_mem/scripts/env_setup.sh 
+
 model_sizes=('1.4b')
 domain=$DOMAIN
 lrs=('2e-7' '2e-6' '2e-5')
