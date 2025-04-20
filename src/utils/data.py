@@ -322,4 +322,27 @@ def get_pair_counts(dataset: Dataset):
     })
     return df
     
+def load_pretraining_data(path_to_data="/net/projects/clab/aswathy/projects/pythia/pretraining_data/indicies.npy", n_tkns=2e5, max_seq_length=128): 
+    """
+    Loads a pretraining corpus from a numpy array and samples random sequences from it to form a dataset with `n_tkns` tokens.
+    """
+
+    print("Loading pretraining corpus ..", flush=True)
+    ds = np.load(path_to_data).astype(np.int32)
+    # Sample N random sequences from the corpus
+    N = np.ceil(n_tkns / ds.shape[1]).astype(np.int32)
+    print("Selecting ", N, " random sequences from the corpus")
+    ds = ds[np.random.choice(ds.shape[0], size=N, replace=False)]
+
+    # Change shape to (n_tkns / max_seq_length, max_seq_length)
+    n_seq = np.ceil(n_tkns / max_seq_length).astype(np.int32) # no. of sequences in packed dataset
+    n_tkns_adjusted = n_seq * max_seq_length
+
+    # Reshape to (n_seq, max_seq_length)
+    ds = ds.reshape(-1, )[:n_tkns_adjusted].reshape(n_seq, -1)
+    # Convert to dataset
+    ds = Dataset.from_dict({"input_ids": ds})
+    ds = ds.with_format("torch")
     
+    print(f"Loaded pretraining corpus ({ds['input_ids'].shape})")
+    return ds
