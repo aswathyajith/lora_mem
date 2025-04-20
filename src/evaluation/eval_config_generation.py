@@ -9,7 +9,7 @@ SPLIT_MERGE_COLS = {
 }
 
 def split_train_test(dataset_configs):
-    dataset_configs["n_tkns"] = 2e5
+    dataset_configs["n_tkns"] = 2e5 # Hardcoded number of tokens to use for inference/eval
     dataset_configs = dataset_configs.drop_duplicates()
     train_dataset_configs = dataset_configs[dataset_configs["split"] == "train"]
     test_dataset_configs = dataset_configs[dataset_configs["split"] != "train"]
@@ -24,7 +24,7 @@ def merge_configs(dataset_configs, model_configs):
     data_config_splits = split_train_test(dataset_configs)
     for split in ["train", "test"]:
         data_configs = data_config_splits[split]
-        model_configs = model_configs[SPLIT_MERGE_COLS[split] + ["ft", "lora_rank", "model_path"]]
+        model_configs = model_configs[SPLIT_MERGE_COLS[split] + ["model_size", "ft", "lora_rank", "model_path"]]
         merged_configs = pd.merge(data_configs, model_configs, on=SPLIT_MERGE_COLS[split])
         merged_configs.to_csv(f"configs/model_data_{split}_config.csv", index=False)
 
@@ -49,9 +49,6 @@ def main():
     # Rename "dataset" to "dataset_name" in model_configs
     model_configs = model_configs.rename(columns={"dataset": "dataset_name", "opt_model_path": "model_path"})
     merge_configs(dataset_configs, model_configs)
-
-        
-        
 
     # TODO: Filter merged df
     
