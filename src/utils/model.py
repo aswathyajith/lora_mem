@@ -68,7 +68,8 @@ def compute_loss(
         dataset: Dataset | None = None,
         text_field: str = "text", 
         max_seq_length: int = 64,
-        packing: bool = True
+        packing: bool = True,
+        base_model: bool = False
     ):
     """Computes loss of a model on a dataset using SFTTrainer"""
 
@@ -76,14 +77,17 @@ def compute_loss(
         model, tokenizer = load_model(model_path_or_hf_name, lora_adapter_path)
     
     # Get training args from model path or lora adapter path
-    if lora_adapter_path is None:
-        path_to_args = os.path.join(model_path_or_hf_name, "training_args.bin")
-    else:
-        path_to_args = os.path.join(lora_adapter_path, "training_args.bin")
+    if not base_model:
+        if lora_adapter_path is None:
+            path_to_args = os.path.join(model_path_or_hf_name, "training_args.bin")
+        else:
+            path_to_args = os.path.join(lora_adapter_path, "training_args.bin")
 
-    args = torch.load(path_to_args, weights_only=False)
-    args.do_train = False
-    args.do_eval = True
+        args = torch.load(path_to_args, weights_only=False)
+        args.do_train = False
+        args.do_eval = True
+    else:
+        args = None
 
     trainer = SFTTrainer(
         model=model,
