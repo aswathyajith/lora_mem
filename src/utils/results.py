@@ -62,7 +62,7 @@ def get_all_losses(path: str):
             losses[loss_file]["train_dataset"] = train_dataset
             losses[loss_file]["eval_dataset"] = eval_dataset
             losses[loss_file]["max_seq_len"] = max_seq_len
-            losses[loss_file]["split"] = split
+            losses[loss_file]["split"] = "pretrain" if eval_dataset=="pretraining" else split 
             losses[loss_file]["n_tkns"] = n_tkns
         loss_df = pd.DataFrame.from_dict(losses, orient="index")
         loss_df = loss_df.reset_index(drop=True)
@@ -76,7 +76,7 @@ def get_all_losses(path: str):
         loss_df = compute_avg_losses(loss_df)
     return loss_df
 
-def get_latex_table(loss_df: pd.DataFrame):
+def save_latex_table(loss_df: pd.DataFrame, latex_path = "results/latex_tables.txt"):
     # Convert to latex table with multicolumns merged]
     # loss_df.columns = [col.replace("_", " ") for col in loss_df.columns]
     loss_cols = list(loss_df.columns[loss_df.columns.str.contains("ppl")])
@@ -98,11 +98,25 @@ def get_latex_table(loss_df: pd.DataFrame):
     
     latex_str = latex_str.replace("[t]", "").replace("_", "\_").replace("_ppl", "")
 
-    return latex_str
+    with open(latex_path, "w") as f:
+        f.write(latex_str)
 
+def compute_agg_losses(df: pd.DataFrame):
+    """
+    Compute the average losses for each model
+    """
+    # aggregate over domain, train_dataset, split, max_seq_len to get mean losses
+    copy = df.drop(columns=["eval_dataset"])
+    loss_cols = list(copy.columns[copy.columns.str.contains("ppl")])
+    # Convert to float
+    copy[loss_cols] = copy[loss_cols].astype(float)
+    copy = copy.groupby(["domain", "train_dataset", "split", "max_seq_len"]).mean().reset_index()
+    return copy
 
 loss_df = get_all_losses("data/model_outputs")
+print(loss_df.columns)
+save_latex_table(loss_df)
+agg_loss_df = compute_agg_losses(loss_df)
 
-latex_str = get_latex_table(loss_df)
-print(latex_str)
-# loss_df.to_csv("data/model_outputs/code/losses.csv", index=False)
+# Save agg_loss_df
+agg_loss_df.to_csv("results/agg_losses.csv", index=False)
