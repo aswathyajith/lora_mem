@@ -9,7 +9,7 @@ from src.utils.model import *
 from src.utils.data import *
 
 class Finetuning:
-    def __init__(self, model_name, domain, lora, seed, lr, lora_rank=None, max_seq_len=128, packing=False, perturbations=None, n_train_tkns=None, stream_size=None):
+    def __init__(self, model_name, domain, lora, seed, lr, lora_rank=None, max_seq_len=128, packing=False, perturbations=None, n_train_tkns=None, stream_size=None, target_modules=None):
         self.model_name = model_name
         self.domain = domain
         self.lora = lora
@@ -28,6 +28,7 @@ class Finetuning:
         self.perturbations = perturbations
         self.n_train_tkns = n_train_tkns
         self.stream_size = stream_size
+        self.target_modules = target_modules
 
     def load_model(self):
         device_map="auto"
@@ -51,8 +52,15 @@ class Finetuning:
                 lora_config = json.load(f)
                 if self.lora_rank is not None:
                     lora_config["r"] = self.lora_rank
+                if self.target_modules is None:
+                    lora_module = "attn_only" # default target_modules
+                else: 
+                    lora_config["target_modules"] = self.target_modules
+
+                if isinstance(self.target_modules, str):
+                    lora_module = self.target_modules
                 lora_rank = lora_config["r"]
-                full_lora = os.path.join("lora", f"r_{lora_rank}")
+                full_lora = os.path.join("lora", lora_module, f"r_{lora_rank}")
                 self.lora_config = LoraConfig(**lora_config)
             print(lora_config)
 
@@ -322,6 +330,7 @@ if __name__ == "__main__":
     parser.add_argument("--sft_config_path", default="configs/model_configs/sft_configs.json", type=str)
     parser.add_argument("--lora_config_path", default="configs/lora_config.json", type=str)
     parser.add_argument("--lr", default=None, type=str, help="Learning rate")
+    parser.add_argument("--target_modules", default=None, type=str, help="Target modules for Lora finetuning")
     parser.add_argument("--domain", default="wiki", type=str, help="Domain of the dataset")
     parser.add_argument("--dataset_config", default="configs/dataset_config.json", type=str, help="dataset[:subset]")
     parser.add_argument("--seed", default=1, type=int, help="Seed for reproducibility")
@@ -362,6 +371,7 @@ if __name__ == "__main__":
     perturbations = args.perturbations
     n_train_tkns = args.n_train_tkns
     stream_size = args.stream_size
+    target_modules = args.target_modules
     # print("Using GPU(s): ", os.environ["CUDA_VISIBLE_DEVICES"])
     set_seed(seed)
     
@@ -382,12 +392,14 @@ if __name__ == "__main__":
         num_train = data_config["num_train"]
         max_seq_lens = data_config["max_seq_lens"]
         for max_seq_len in max_seq_lens:
-            ft = Finetuning(base_model, domain, lora, seed, lr, lora_rank, max_seq_len, packing, perturbations, n_train_tkns, stream_size)
+            ft = Finetuning(base_model, domain, lora, seed, lr, lora_rank, max_seq_len, packing, perturbations, n_train_tkns, stream_size, target_modules)
             ft.load_configs(data_config, model_config_path, lora_config_path)
             model_save_dir = ft.model_dir
             if os.path.exists(model_save_dir) and "final_model" in os.listdir(model_save_dir):
                 print(f"Skipping {dataset} as it is already finetuned")
                 continue
+            else:
+                print(f"Finetuning model: {model_save_dir}")
             
             ft.load_model()
             hf_repo = data_config["hf_repo"]
