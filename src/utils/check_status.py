@@ -4,12 +4,12 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_models", type=str, default="models")
-    parser.add_argument("--data_preprocess", type=str, default="packing/perturbations/reverse_tkns")
+    parser.add_argument("--data_preprocess", type=str, default="packing/perturbations/none")
     parser.add_argument("--model_sizes", type=str, default=["pythia-1.4b"], nargs="+")
     dataset_domains = [
-        "wiki/wikitext",
-        "biomed/chemprot",
-        "bible/bible_corpus_eng", 
+        # "wiki/wikitext",
+        # "biomed/chemprot",
+        # "bible/bible_corpus_eng", 
         "code/starcoder",
         "legal/us_bills", 
         "math/open_web_math"

@@ -77,7 +77,9 @@ def compute_loss(
         model, tokenizer = load_model(model_path_or_hf_name, lora_adapter_path)
     
     # Get training args from model path or lora adapter path
-    if not base_model:
+    if base_model:
+        args = None
+    else:
         if lora_adapter_path is None:
             path_to_args = os.path.join(model_path_or_hf_name, "training_args.bin")
         else:
@@ -86,8 +88,6 @@ def compute_loss(
         args = torch.load(path_to_args, weights_only=False)
         args.do_train = False
         args.do_eval = True
-    else:
-        args = None
 
     trainer = SFTTrainer(
         model=model,

@@ -346,3 +346,67 @@ def load_pretraining_data(path_to_data="/net/projects/clab/aswathy/projects/pyth
     
     print(f"Loaded pretraining corpus ({ds['input_ids'].shape})")
     return ds
+
+def compute_weight_differences(model1, model2):
+    """
+    Compute the differences between weights of two transformer models.
+    
+    Args:
+        model1: First transformer model
+        model2: Second transformer model
+        
+    Returns:
+        dict: Dictionary containing weight differences for each layer
+    """
+    differences = {}
+    
+    # Get state dicts
+    state_dict1 = model1.state_dict()
+    state_dict2 = model2.state_dict()
+    
+    # Ensure models have the same architecture
+    assert set(state_dict1.keys()) == set(state_dict2.keys()), "Models have different architectures"
+    
+    for name, param1 in state_dict1.items():
+        param2 = state_dict2[name]
+        
+        # Compute absolute difference
+        diff = torch.abs(param1 - param2)
+        
+        # Store statistics
+        differences[name] = {
+            'mean': diff.mean().item(),
+            'std': diff.std().item(),
+            'max': diff.max().item(),
+            'min': diff.min().item(),
+            'shape': param1.shape
+        }
+    
+    return differences
+
+def print_weight_differences(differences, top_k=5):
+    """
+    Print the top K layers with the largest weight differences.
+    
+    Args:
+        differences: Dictionary of weight differences
+        top_k: Number of top differences to print
+    """
+    # Sort by mean difference
+    sorted_diffs = sorted(
+        differences.items(),
+        key=lambda x: x[1]['mean'],
+        reverse=True
+    )
+    
+    print("\nTop {} layers with largest weight differences:".format(top_k))
+    print("-" * 80)
+    print("{:<40} {:<15} {:<15} {:<15}".format(
+        "Layer", "Mean Diff", "Max Diff", "Shape"
+    ))
+    print("-" * 80)
+    
+    for name, stats in sorted_diffs[:top_k]:
+        print("{:<40} {:<15.6f} {:<15.6f} {}".format(
+            name, stats['mean'], stats['max'], stats['shape']
+        ))

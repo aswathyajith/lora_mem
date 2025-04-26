@@ -132,8 +132,6 @@ def find_intruder_dims(
         n_intruder_dims += len(U_tuned_max[:k][U_tuned_max[:k]<threshold])
     return n_intruder_dims
 
-U_tuned_max, _ = svd_0.max(dim=1)
-
 if __name__ == "__main__":
     base_model, tkzr = load_model("EleutherAI/pythia-1.4b", lora_adapter_path = None)
     finetuned_model, tkzr = load_model("models/pythia-1.4b/packing/perturbations/none/legal/us_bills/full-ft/lr_2e-6/n_tkns_2e6/max_seq_len_128/seed_1/final_model", lora_adapter_path = None)

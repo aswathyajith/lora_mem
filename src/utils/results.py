@@ -113,10 +113,12 @@ def compute_agg_losses(df: pd.DataFrame):
     copy = copy.groupby(["domain", "train_dataset", "split", "max_seq_len"]).mean().reset_index()
     return copy
 
-loss_df = get_all_losses("data/model_outputs")
-print(loss_df.columns)
-save_latex_table(loss_df)
-agg_loss_df = compute_agg_losses(loss_df)
+if __name__ == "__main__":
+    loss_df = get_all_losses("data/model_outputs")
+    print(loss_df.columns)
+    save_latex_table(loss_df)
+    agg_loss_df = compute_agg_losses(loss_df)
+
 
 # Save agg_loss_df
-agg_loss_df.to_csv("results/agg_losses.csv", index=False)
+    agg_loss_df.to_csv("results/agg_losses.csv", index=False)
