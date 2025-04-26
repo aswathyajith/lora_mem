@@ -7,6 +7,40 @@ SPLIT_MERGE_COLS = {
     "train": ["domain", "dataset_name", "max_seq_len"],
     "test": ["domain", "max_seq_len"]
 }
+# src.evaluation.eval_config_generation
+def cross_domain_configs(config_df=None, path_to_configs="configs/model_data_test_config.csv"):
+    if config_df is None: 
+        assert path_to_configs is not None, "path_to_configs must be provided if dataset_configs is not provided"
+        config_df = pd.read_csv(path_to_configs)
+
+    model_configs = config_df[
+        config_df["model_path"].str.contains("n_tkns_2e6") & 
+        config_df["model_path"].str.contains("max_seq_len_256") & 
+        (config_df.apply(lambda x: x['dataset_name'] not in x['model_path'], axis=1))
+    ]
+    
+    model_configs = model_configs[["model_size", "model_path", "max_seq_len", "ft", "lora_rank"]].drop_duplicates()
+
+    # Filter dataset configs to only include configs that have been finetuned on the same dataset
+    dataset_configs = config_df[
+        config_df.apply(
+            lambda x: x['dataset_name'] in x['model_path'], axis=1
+        )
+    ]
+
+    eval_datasets = dataset_configs.drop("model_path", axis=1).drop_duplicates()
+
+    # Filter model configs to only include configs that have been finetuned on 2M tokens
+    
+    # cartesian product of eval_datasets and model_configs
+    x_domain_configs = pd.merge(eval_datasets, model_configs)
+
+    # remove dataset matches within the same domain
+    x_domain_configs = x_domain_configs[
+        (x_domain_configs.apply(lambda x: "/" + x['domain'] + "/" not in x['model_path'], axis=1))
+    ]
+    x_domain_configs.to_csv("configs/cross_domain_eval_configs.csv", index=False)
+
 
 def split_train_test(dataset_configs):
     dataset_configs["n_tkns"] = 2e5 # Hardcoded number of tokens to use for inference/eval
