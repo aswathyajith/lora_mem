@@ -2,15 +2,18 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import itertools
 
 class Plotter:
     def __init__(
             self,
             data_path: str,
             ppl_results_path: str = "configs/optimal_lr.json",
+            save_path: str = "test.png"
         ):
         self.data_path = data_path
         self.ppl_results_path = ppl_results_path
+        self.save_path = save_path
 
     def read_data(self):
         if self.data_path.endswith(".json"):
@@ -65,8 +68,10 @@ class Plotter:
                 if handles is None:
                     handles, labels = plot.get_legend_handles_labels()
                 
-                # Remove individual legends
-                ax[i, j].get_legend().remove()
+                # Remove individual legends if they exist
+                legend = ax[i, j].get_legend()
+                if legend is not None:
+                    legend.remove()
                 
                 # Add column labels (max_seq_len) at the top
                 if i == 0:
@@ -125,13 +130,113 @@ class Plotter:
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             plt.savefig(save_path)
 
-# plotter = Plotter("docs/data/code/starcoder/apps/test/n_tkns_2e6/max_seq_len_64/seed_1/combined_results_10000.json")
-# plotter.read_data()
-# plotter.process_data()
-# plotter.plot_prob_diffs(save_path="docs/data/code/starcoder/apps/test/n_tkns_2e6/max_seq_len_64/seed_1/combined_results_10000.png")
-# plt.show()
+    def plot_cross_domain_loss(self, df):
+        """
+        Create nxn barplots of model losses comparing models across domains.
+        
+        Args:
+            data: DataFrame containing the data to plot
+            save_path: Optional path to save the figure
+        """
+        
+        save_path = self.save_path
+        domains = df.train_domain.unique()
+        n_domains = df.train_domain.nunique()
+        domain_labels = {domain: domain.capitalize() for domain in domains}
+        model_labels = {
+            "base_ppl": textwrap.fill("Base", width=10),
+            "lora_attn_only_r16_ppl": textwrap.fill("LORA (r=16, Attn Only)", width=10),
+            "full_model_ppl": textwrap.fill("Full Model", width=10)
+        }
 
-plotter = Plotter("results/agg_losses.csv")
-plotter.read_data()
-plotter.plot_losses(save_path="results/losses.png")
-plt.show()
+        # Find global min and max values
+        y_min = df['loss'].min()
+        y_max = df['loss'].max()
+        # Add some padding to the limits
+        y_range = y_max - y_min
+        y_min -= 0.05 * y_range
+        y_max += 0.1 * y_range
+
+        # Set up the figure
+        plt.rcParams.update({'font.size': 12})
+        fig, ax = plt.subplots(n_domains, n_domains, figsize=(4*n_domains, 4*n_domains))
+        
+        # Add overall labels
+        fig.text(0.5, 0.95, 'Test Domain', ha='center', va='center', fontsize=16)
+        fig.text(0.02, 0.5, 'Train Domain', ha='center', va='center', rotation='vertical', fontsize=16)
+        
+        
+        # Create a single legend for the entire plot
+        handles, labels = None, None
+        
+        # Plot each domain combination
+        for i, domain1 in enumerate(domains):
+            for j, domain2 in enumerate(domains):
+                domain_data = df[(df['train_domain'] == domain1) & (df['test_domain'] == domain2)]
+                
+                # Create the barplot
+                plot = sns.barplot(
+                    data=domain_data,
+                    x='model',
+                    y='loss',
+                    hue='model',
+                    ax=ax[i, j],
+                    palette=["#6666ff", "#99cc00", "#ff8000"]
+                )
+
+                # Add value labels on top of each bar
+                for container in plot.containers:
+                    plot.bar_label(container, fmt='%.2f', padding=3)  # %.2f for 2 decimal places
+
+                # Set the same y-limits for all subplots
+                ax[i, j].set_ylim(y_min, y_max)
+                
+                # Store handles and labels from the first plot
+                if handles is None:
+                    handles, labels = plot.get_legend_handles_labels()
+                
+                # Remove individual legends if they exist
+                legend = ax[i, j].get_legend()
+                if legend is not None:
+                    legend.remove()
+                
+                # Set titles
+                if i == 0:
+                    ax[i, j].set_title(f"{domain_labels[domain2]}", pad=20, fontsize=14)
+                if j == 0:
+                    ax[i, j].set_ylabel(f"{domain_labels[domain1]}", rotation=0, labelpad=60, fontsize=14)
+                else:
+                    ax[i, j].set_ylabel("")
+                
+                # Rotate x-axis labels
+                ax[i, j].tick_params(axis='x')
+                
+                # Remove x-axis labels for inner plots
+                if i != n_domains - 1:
+                    ax[i, j].set_xlabel("")
+
+                # convert xticklabels to model_labels
+                xticklabels = [model_labels[label.get_text()] for label in ax[i, j].get_xticklabels()]
+                ax[i, j].set_xticks(range(len(xticklabels)))
+                ax[i, j].set_xticklabels(xticklabels)
+
+                
+        
+        # Add single legend to the figure
+        
+        fig.legend(
+            handles, 
+            labels, 
+            loc='lower center', 
+            ncol=2, 
+            fontsize=12, 
+            frameon=False,
+            bbox_to_anchor=(0.5, 0.0)
+        )
+        
+        # Adjust layout with more space for labels
+        plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
+        
+        if save_path is not None:
+            # os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            plt.savefig(save_path, bbox_inches='tight', dpi=300)
