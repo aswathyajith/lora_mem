@@ -1,0 +1,3 @@
+demo/data/math.json filter=lfs diff=lfs merge=lfs -text
+demo/data/legal.json filter=lfs diff=lfs merge=lfs -text
+demo/data/code.json filter=lfs diff=lfs merge=lfs -text
