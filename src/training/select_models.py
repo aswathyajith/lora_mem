@@ -7,7 +7,6 @@ from src.utils.data import load_data
 
 DOMAIN_DATASETS = {
     "legal": ["us_bills"],
-    # "biomed": ["chemprot"],
     "code": ["starcoder"],
     "math": ["open_web_math"]
 }
@@ -25,6 +24,19 @@ def match_data_args(
         preprocess_config_path: str, 
         n_tkns: int = 2e5,
     ) -> dict: 
+    """
+    Args: 
+        domain: str, domain of the model
+        dataset_name: str, name of the dataset
+        model_dir: str, directory of the model
+        preprocess_config_path: str, path to the preprocess config
+        n_tkns: int, number of tokens in the dataset
+    Returns: 
+        data_args: dict, data arguments
+    
+    This function retrieves the data arguments from the preprocess config file
+    which is used to load the validation set that the model is evaluated on.
+    """
     if not os.path.exists(preprocess_config_path): 
         raise FileNotFoundError(f"Preprocess config file {preprocess_config_path} does not exist")
     
@@ -53,14 +65,6 @@ def match_data_args(
     print("# Matching selection criteria: ", len(selected_data_args))
     return selected_data_args.iloc[0]
 
-def get_last_ckpt(path: str) -> str | None: 
-    ckpts = [int(f.split("checkpoint-")[-1]) for f in os.listdir(path) if f.startswith("checkpoint")]
-    if len(ckpts) == 0: 
-        return None
-    last_ckpt = max(ckpts)
-
-    return os.path.join(path, f"checkpoint-{last_ckpt}")
-
 def get_eval_loss(
         domain: str, 
         dataset_name: str, 
@@ -70,63 +74,77 @@ def get_eval_loss(
         debug : bool = False
     ) -> float: 
     """
-    Get eval loss from last checkpoint or final model
+    Args: 
+        domain: str, domain of the model
+        dataset_name: str, name of the dataset
+        model_path_or_hf_name: str, path to the model or hf name
+        lora_adapter_path: str, path to the lora adapter
+        preprocess_config_path: str, path to the preprocess config
+        debug: bool, whether to debug
+    Returns: 
+        eval_loss: float, evaluation loss
+    
+    This function returns the validation loss of the final model from trainer_state.json 
+    if it exists, otherwise loads final model and evaluates on test set. 
+    This function saves the validation loss to trainer_state.json in the 
+    final_model dir passed as input.
     """
 
     model_dir = lora_adapter_path if lora_adapter_path is not None else model_path_or_hf_name
+    if "final_model" not in model_dir: 
+        raise ValueError(f"{model_dir} not a final model")
+    
     ft_complete = os.path.exists(model_dir)
-    ckpt_dir = os.path.dirname(model_dir)
     if debug and not ft_complete: 
         return 0
-    last_ckpt = get_last_ckpt(ckpt_dir)
 
+    trainer_state_results = os.path.join(model_dir, "trainer_state.json")
 
-    # Could not find any checkpoint, 
-    # check if final_model dir contains results
-    # else compute loss of final model
-    if last_ckpt is None: 
-        if os.path.exists(os.path.join(model_dir, "trainer_state.json")): 
-            print(f"Found trainer_state.json in {model_dir}")
-            last_ckpt = model_dir
-        else:
-            print(f"No trainer_state.json found in {model_dir}")
-            # Load final model
-            model, tokenizer = load_model(model_path_or_hf_name, lora_adapter_path)
-            data_args = match_data_args(
-                domain=domain, 
-                dataset_name=dataset_name, 
-                model_dir=model_dir, 
-                preprocess_config_path=preprocess_config_path
-            )
-            print("Args to load_data: ", data_args)
-            dataset = load_data(
-                tokenizer,
-                **data_args
-            )
-
-            sft_args = {
-                "max_seq_length": data_args["max_seq_len"], 
-                "packing": data_args["packing"], 
-                "text_field": data_args["text_field"]
-            }
-            
-            loss = compute_loss(
-                model_path_or_hf_name=model_path_or_hf_name, lora_adapter_path=lora_adapter_path, 
-                model=model, 
-                dataset=dataset, 
-                **sft_args)
-            trainer_state = os.path.join(model_dir, "trainer_state.json")
-            loss["best_metric"] = loss["eval_loss"]
-            with open(trainer_state, "w") as f: 
-                print(f"Writing evaluation results to {trainer_state}")
-                json.dump(loss, f, indent=4)
-            return loss["eval_loss"]
+    # If final_model dir contains trainer_state.json, use it
+    # Otherwise, load final model and evaluate on test set
+    if os.path.exists(trainer_state_results): 
+        print(f"Found trainer_state.json in {model_dir}")
+        with open(trainer_state_results, "r") as f: 
+            eval_loss = json.load(f)
+        return eval_loss["best_metric"]
     
-    trainer_state = os.path.join(last_ckpt, "trainer_state.json")
+    else: 
+        print(f"No trainer_state.json found in {model_dir}. Loading final model and evaluating on test set.")
+        
+        # Load final model to evaluate on test set
+        model, tokenizer = load_model(model_path_or_hf_name, lora_adapter_path)
+        data_args = match_data_args(
+            domain=domain, 
+            dataset_name=dataset_name, 
+            model_dir=model_dir, 
+            preprocess_config_path=preprocess_config_path
+        )
+        print("Args to load_data: ", data_args)
+        dataset = load_data(
+            tokenizer,
+            **data_args
+        )
+
+        sft_args = {
+            "max_seq_length": data_args["max_seq_len"], 
+            "packing": data_args["packing"], 
+            "text_field": data_args["text_field"]
+        }
+        
+        loss = compute_loss(
+            model_path_or_hf_name=model_path_or_hf_name, lora_adapter_path=lora_adapter_path, 
+            model=model, 
+            dataset=dataset, 
+            **sft_args)
+        
+        # Save eval loss to trainer_state.json
+        loss["best_metric"] = loss["eval_loss"]
+        with open(trainer_state_results, "w") as f: 
+            print(f"Saving evaluation results to {trainer_state_results}")
+            json.dump(loss, f, indent=4)
+        return loss["eval_loss"]
     
-    with open(trainer_state, "r") as f: 
-        eval_loss = json.load(f)
-    return eval_loss["best_metric"]
+    
 
 def get_avg_loss(
         domain: str, 
@@ -171,7 +189,7 @@ def main():
     # Example Usage: 
     # python src/find_opt_lr.py --all_models_path models/pythia-1.4b/packing_n_docs/perturbations/none --save_path configs/optimal_lr_n_docs.json --max_seq_lens 64 128 256
     parser.add_argument("--all_models_path", type=str, default="models/pythia-1.4b/packing/perturbations/none")
-    parser.add_argument("--domain", type=str, default="", help = "Domain to select models from (e.g. legal, code, math, biomed [defaults to all domains])")
+    parser.add_argument("--domain", type=str, default="", help = "Domain to select models from (e.g. legal, code, math, [defaults to all domains])")
     parser.add_argument("--max_seq_lens", type=int, default=[64, 128, 256], nargs="+")
     parser.add_argument("--debug", default=False, action="store_true")
     parser.add_argument("--preprocess_config_path", type=str, default="config_dfs/configurations.csv")
@@ -194,6 +212,7 @@ def main():
     print("Found", len(model_paths), "model paths")
 
     for path in model_paths: 
+        print(path)
         selected_domain = [domain for domain in DOMAIN_DATASETS.keys() if domain in path]
         domain = selected_domain[0]
         dataset_name = [ds for ds in DOMAIN_DATASETS[domain] if ds in path]
@@ -209,6 +228,7 @@ def main():
         # Get loss for each model averaged across seeds
         losses.append(get_avg_loss(
             domain=domain, 
+            seeds=[1],
             dataset_name=dataset_name, 
             model_name_or_path=model_name_or_path, 
             lora_adapter_path=lora_adapter_path, 
