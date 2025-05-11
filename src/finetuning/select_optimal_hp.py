@@ -299,6 +299,7 @@ def main():
         ][0]
         model_size = k.split("/")[1]
         r = None
+        lora_module = None
         if "full" in k:
             ft = "full"
         else:
@@ -308,6 +309,7 @@ def main():
                 for r in k.split("lora/")[-1].split("/")
                 if r.startswith("r_")
             ][0]
+            lora_module = k.split("lora/")[-1].split("/")[0]
         lr = [
             substr.replace("lr_", "")
             for substr in k.split("lora/")[-1].split("/")
@@ -324,6 +326,7 @@ def main():
                 "max_seq_len": max_len,
                 "n_tkns": n_tkns,
                 "ft": ft,
+                "lora_module": lora_module,
                 "lora_rank": r,
                 "lr_loss_map": {lr: (k, v)},
             }
@@ -353,6 +356,7 @@ def main():
             "max_seq_len",
             "n_tkns",
             "ft",
+            "lora_module",
             "lora_rank",
             "opt_lr",
             "opt_loss",
