@@ -210,9 +210,10 @@ def main():
         default="models/pythia-1.4b/packing/perturbations/none",
     )
     parser.add_argument(
-        "--domain",
+        "--domains",
         type=str,
-        default="",
+        default=["legal", "code", "math"],
+        nargs="+",
         help="Domain to select models from (e.g. legal, code, math, [defaults to all domains])",
     )
     parser.add_argument("--max_seq_lens", type=int, default=[64, 128, 256], nargs="+")
@@ -220,12 +221,20 @@ def main():
     parser.add_argument(
         "--preprocess_config_path", type=str, default="config_dfs/configurations.csv"
     )
+    parser.add_argument(
+        "--seeds",
+        type=int,
+        default=[1, 2, 3],
+        nargs="+",
+        help="Seeds to consider for aggregating results",
+    )
     parser.add_argument("--save_path", type=str, default=None)
 
     args = parser.parse_args()
     all_models_path = args.all_models_path
     debug = args.debug
     save_path = args.save_path
+    seeds = args.seeds
     preprocess_config_path = args.preprocess_config_path
 
     # List comprehension to get all seed model paths
@@ -233,7 +242,7 @@ def main():
         root
         for (root, dirs, files) in os.walk(all_models_path)
         for dir in dirs
-        if ("seed" in dir) and (args.domain in root)
+        if ("seed" in dir) and (any(d in root for d in args.domains))
     ]
     losses = []
     # Filter out model paths that are not in the predefined domain/datasets
@@ -263,7 +272,7 @@ def main():
         losses.append(
             get_avg_loss(
                 domain=domain,
-                seeds=[1],
+                seeds=seeds,
                 dataset_name=dataset_name,
                 model_name_or_path=model_name_or_path,
                 lora_adapter_path=lora_adapter_path,
