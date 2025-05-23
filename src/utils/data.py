@@ -57,6 +57,7 @@ def pack_dataset(
         chars_per_token=3.6,  # Approximate number of characters per token
         shuffle=True,  # Whether to shuffle the dataset
         append_concat_token=True,  # Whether to append a concatenation token between sequences
+        eos_token_id=tokenizer.eos_token_id,
     )
 
     # Convert the ConstantLengthDataset to a Dataset and decode the input_ids
@@ -153,8 +154,9 @@ def get_dataset_save_path(
         )
         return None
 
+    n_tkns_str = format_scientific(n_tkns)
     return os.path.join(
-        data_dir, dataset_dir, split, f"n_tkns_{str(n_tkns)}/max_seq_len_{max_length}"
+        data_dir, dataset_dir, split, f"n_tkns_{n_tkns_str}/max_seq_len_{max_length}"
     )
 
 
@@ -168,7 +170,6 @@ def load_data(
     text_field: str = "text",
     streaming: bool = False,
     packing: bool = False,
-    inference: bool = False,
     n_tkns: int | str | None = None,
     downloaded: bool = False,
     **kwargs,
@@ -186,7 +187,7 @@ def load_data(
         print("Loading dataset from saved path: ", save_path)
         ds = load_from_disk(save_path)
 
-        if inference:
+        if packing:
             ds = pack_dataset(ds, tokenizer, max_length, text_field=text_field)
 
         return ds
@@ -274,8 +275,8 @@ def load_data(
             )
             ds = ds.select(range(num_train))
 
-    if packing and inference:  # Pack dataset for inference
-        print("Packing dataset for inference..")
+    if packing:  # Pack dataset
+        print("Packing dataset..")
         print("Number of samples in dataset BEFORE packing: ", len(ds))
         print("Constructing packed dataset..")
         ds = pack_dataset(ds, tokenizer, max_length, text_field=text_field)
@@ -473,3 +474,17 @@ def print_weight_differences(differences, top_k=5):
                 name, stats["mean"], stats["max"], stats["shape"]
             )
         )
+
+
+def format_scientific(n: int | float) -> str:
+    """
+    Converts a number to scientific notation string format like '2e5' instead of '2.0e+05'.
+    Examples:
+        200000 -> '2e5'
+        2000000 -> '2e6'
+        20000 -> '2e4'
+    """
+    # Convert to scientific notation
+    sci = "{:.0e}".format(n)
+    # Remove the decimal point and plus sign
+    return sci.replace("e+0", "e")
