@@ -164,6 +164,8 @@ def get_avg_loss(
     preprocess_config_path: str = "config_dfs/configurations.csv",
 ) -> float:
     avg_loss = 0
+    n_seeds_found = 0
+
     for i in seeds:
         if lora_adapter_path is not None:
             _model_name_or_path = model_name_or_path
@@ -177,15 +179,18 @@ def get_avg_loss(
             _lora_adapter_path = lora_adapter_path
 
         ckpt_dir = (
-            os.path.exists(_model_name_or_path)
-            if lora_adapter_path is None
-            else os.path.exists(_lora_adapter_path)
+            _model_name_or_path if lora_adapter_path is None else _lora_adapter_path
         )
+
+        print(f"Checking {ckpt_dir}")
         if not os.path.exists(ckpt_dir):
             if debug:
+                print(f"Skipping {ckpt_dir} because it does not exist")
                 continue
             else:
                 raise FileNotFoundError(f"Checkpoint dir {ckpt_dir} does not exist")
+
+        n_seeds_found += 1
 
         loss = get_eval_loss(
             domain=domain,
@@ -196,7 +201,8 @@ def get_avg_loss(
             debug=debug,
         )
         avg_loss += loss
-    avg_loss /= len(seeds)
+
+    avg_loss /= n_seeds_found
     return avg_loss
 
 
@@ -212,7 +218,7 @@ def main():
     parser.add_argument(
         "--domains",
         type=str,
-        default=["legal", "code", "math"],
+        default=["code", "math"],
         nargs="+",
         help="Domain to select models from (e.g. legal, code, math, [defaults to all domains])",
     )
@@ -240,11 +246,11 @@ def main():
     # List comprehension to get all seed model paths
     model_paths = [
         root
-        for (root, dirs, files) in os.walk(all_models_path)
+        for (root, dirs, _) in os.walk(all_models_path)
         for dir in dirs
         if ("seed" in dir) and (any(d in root for d in args.domains))
     ]
-    losses = []
+    losses, model_loss_paths = [], []
     # Filter out model paths that are not in the predefined domain/datasets
 
     dd = [f"{k}/{v_i}" for k, v in DOMAIN_DATASETS.items() for v_i in v]
@@ -253,6 +259,8 @@ def main():
     print("Found", len(model_paths), "model paths")
 
     for path in model_paths:
+        if "full-svd" in path:
+            continue
         print(path)
         selected_domain = [
             domain for domain in DOMAIN_DATASETS.keys() if domain in path
@@ -280,7 +288,11 @@ def main():
                 preprocess_config_path=preprocess_config_path,
             )
         )
-    dict_losses = {model_path: loss for model_path, loss in zip(model_paths, losses)}
+        model_loss_paths.append((path))
+
+    dict_losses = {
+        model_path: loss for model_path, loss in zip(model_loss_paths, losses)
+    }
     path_hyperparams = {}
 
     for k, v in dict_losses.items():
