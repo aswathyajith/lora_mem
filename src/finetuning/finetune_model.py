@@ -176,8 +176,14 @@ class Finetuning:
             )
             print(f"MODEL SAVE DIR: {output_dir}")
             model_config["output_dir"] = output_dir
+            model_config["seed"] = seed
             self.model_dir = model_config["output_dir"]
-            self.training_arguments = TrainingArguments(**model_config, seed=seed)
+            self.training_arguments = TrainingArguments(**model_config)
+            # Save training arguments
+            torch.save(
+                model_config,
+                os.path.join(self.model_dir, "final_model", "training_args.bin"),
+            )
 
     def init_dataset(
         self,
@@ -510,12 +516,6 @@ class Finetuning:
             print(f"Setting resume_from_checkpoint={False}")
             resume_from_checkpoint = False
             trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-
-        # Save training arguments
-        torch.save(
-            self.training_arguments,
-            os.path.join(self.model_dir, "final_model", "training_args.bin"),
-        )
 
         trainer.evaluate()
 

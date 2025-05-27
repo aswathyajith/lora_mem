@@ -201,7 +201,7 @@ def main():
 
             print("Evaluating model at: ", model_path_root)
             # Load data
-            ds = load_data(tokenizer, inference=True, max_length=max_seq_len, **row)
+            ds = load_data(tokenizer, max_length=max_seq_len, **row)
 
             base_output_path = os.path.join(
                 base_model_output_dir_root,
@@ -251,7 +251,6 @@ def main():
                     dataset=ds,
                     text_field=row["text_field"],
                     max_seq_length=max_seq_len,
-                    packing=True,
                     base_model=True,
                 )
                 ppl_dict = {"base_ppl": ppl}
@@ -361,7 +360,6 @@ def main():
                         dataset=ds,
                         text_field=row["text_field"],
                         max_seq_length=max_seq_len,
-                        packing=True,
                     )
 
                     ppl_dict[model_loss_name] = ppl
