@@ -1,0 +1,224 @@
+{
+    "max_seq_len": [256],
+    "n_tkns": ["2e7"],
+    "n_test_tkns": "2e5",
+    "packing": true, 
+    "perturbations": ["none"],
+    "domains": {
+        "bible": [
+            {
+                "dataset_name": "kjv_bible",
+                "dataset": "bible/kjv_bible",
+                "text_field": "Text",
+                "eval_on_splits": ["train", "test"],
+                "splits": {
+                    "train": "train", 
+                    "test": "test"
+                }, 
+                "streaming": false, 
+                "skip": false,
+                "downloaded": true
+            }
+        ],
+        "french": [
+            {
+                "dataset_name": "french-lit",
+                "dataset": "french/french-lit",
+                "text_field": "text",
+                "eval_on_splits": ["train", "test"],
+                "splits": {
+                    "train": "train", 
+                    "test": "test"
+                }, 
+                "streaming": false, 
+                "skip": false,
+                "downloaded": true
+            }
+        ],
+        "song_lyrics": [
+            {
+                "dataset_name": "aml_song_lyrics_balanced",
+                "dataset": "Annanay/aml_song_lyrics_balanced",
+                "text_field": "lyrics",
+                "eval_on_splits": ["train", "test"],
+                "splits": {
+                    "train": "train", 
+                    "test": "test"
+                }, 
+                "streaming": false, 
+                "skip": false
+            }
+        ],
+        "wiki": [
+            {
+                "dataset_name": "wikitext",
+                "dataset": "Salesforce/wikitext:wikitext-2-raw-v1",
+                "text_field": "text",
+                "eval_on_splits": ["train", "test"],
+                "splits": {
+                    "train": "train", 
+                    "test": "validation"
+                }, 
+                "streaming": false, 
+                "skip": false
+            }
+        ],
+        "poetry": [
+            {
+                "dataset_name": "gutenberg-poetry",
+                "dataset": "poetry/gutenberg-poetry",
+                "text_field": "poem",
+                "eval_on_splits": ["train", "test"],
+                "splits": {
+                    "train": "train", 
+                    "test": "test"
+                }, 
+                "streaming": false, 
+                "skip": true,
+                "downloaded": true
+            }
+        ], 
+        "legal": [
+            {
+                "dataset_name": "us_bills",
+                "dataset": "pile-of-law/pile-of-law:us_bills",
+                "text_field": "text",
+                "eval_on_splits": ["train", "test"],
+                "splits": {
+                    "train": "train", 
+                    "test": "validation"
+                }, 
+                "streaming": false, 
+                "skip": false
+            }, 
+            {
+                "dataset_name": "eurlex", 
+                "dataset": "pile-of-law/pile-of-law:eurlex",
+                "text_field": "text",
+                "splits": {
+                    "train": "train", 
+                    "test": "validation"
+                }, 
+                "streaming": false, 
+                "eval_on_splits": ["train", "test"],
+                "skip": false
+            },
+            {
+                "dataset_name": "docket", 
+                "dataset": "pile-of-law/pile-of-law:scotus_docket_entries",
+                "text_field": "text",
+                "splits": {
+                    "train": "train", 
+                    "test": "validation"
+                }, 
+                "streaming": false, 
+                "eval_on_splits": ["train", "test"],
+                "skip": false
+            }, 
+            {
+                "dataset_name": "nlrb", 
+                "dataset": "pile-of-law/pile-of-law:nlrb_decisions",
+                "text_field": "text",
+                "splits": {
+                    "train": "train", 
+                    "test": "validation"
+                }, 
+                "streaming": false, 
+                "eval_on_splits": ["train", "test"],
+                "skip": false
+            }
+        ], 
+        "math": [
+            {
+                "dataset_name": "open_web_math", 
+                "dataset": "open-web-math/open-web-math",
+                "text_field": "text",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": true, 
+                "skip": false, 
+                "eval_on_splits": ["train", "test"], 
+                "downloaded": true
+            }, 
+            {
+                "dataset_name": "gsm8k", 
+                "dataset": "openai/gsm8k",
+                "text_field": "answer",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": false, 
+                "eval_on_splits": ["train", "test"],
+                "skip": false
+            }, 
+            {
+                "dataset_name": "minif2f", 
+                "dataset": "Tonic/MiniF2F",
+                "text_field": "informal_prefix",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": false, 
+                "eval_on_splits": ["train", "test"],
+                "skip": false, 
+                "downloaded": true
+            }, 
+            {
+                "dataset_name": "hendrycks_math", 
+                "dataset": "EleutherAI/hendrycks_math",
+                "text_field": "solution",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": false, 
+                "eval_on_splits": ["train", "test"],
+                "skip": false
+            }
+        ], 
+        "bookcorpus": [
+            {
+                "dataset_name": "bookcorpus", 
+                "dataset": "bookcorpus/bookcorpus",
+                "text_field": "text",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": true, 
+                "skip": false,
+                "eval_on_splits": ["train", "test"], 
+                "downloaded": true
+            }
+        ], 
+        "code": [
+            {
+                "dataset_name": "starcoder", 
+                "dataset": "lparkourer10/starcoder-python5b",
+                "text_field": "content",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": true, 
+                "skip": false,
+                "eval_on_splits": ["train", "test"], 
+                "downloaded": true
+            }, 
+            {
+                "dataset_name": "apps", 
+                "dataset": "codeparrot/apps",
+                "text_field": "solutions",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": false, 
+                "skip": false,
+                "eval_on_splits": ["train", "test"]
+            }, 
+            {
+                "dataset_name": "conala", 
+                "dataset": "neulab/conala",
+                "text_field": "snippet",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": false, 
+                "skip": false,
+                "eval_on_splits": ["train", "test"]
+            }, 
+            {
+                "dataset_name": "humaneval", 
+                "dataset": "openai/openai_humaneval",
+                "text_field": "canonical_solution",
+                "splits": {"train": "train", "test": "test"}, 
+                "streaming": false, 
+                "skip": false,
+                "eval_on_splits": ["train", "test"], 
+                "downloaded": true
+            }
+        ]
+    }
+}
