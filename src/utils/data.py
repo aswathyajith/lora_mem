@@ -144,6 +144,8 @@ def get_dataset_save_path(
         "pile-of-law/pile-of-law:us_bills": "legal/us_bills",
         "open-web-math": "math/open_web_math",
         "starcoder": "code/starcoder",
+        "french-lit": "french/french-lit",
+        "bookcorpus": "bookcorpus/bookcorpus",
     }
 
     dataset_dir = dataset_to_model_dir.get(dataset, None)
@@ -154,7 +156,10 @@ def get_dataset_save_path(
         )
         return None
 
-    n_tkns_str = format_scientific(n_tkns)
+    if isinstance(n_tkns, str):
+        n_tkns_str = n_tkns
+    else:
+        n_tkns_str = format_scientific(n_tkns)
     return os.path.join(
         data_dir, dataset_dir, split, f"n_tkns_{n_tkns_str}/max_seq_len_{max_length}"
     )
@@ -334,6 +339,8 @@ def get_tkn_counts(dataset: Dataset):
         "input_ids" in dataset.column_names
     ), "input_ids must be a feature in the dataset"
     input_ids = dataset["input_ids"]
+    if isinstance(input_ids, torch.Tensor):
+        input_ids = input_ids.tolist()
     input_ids_flat = list(chain.from_iterable(input_ids))
     uniq_ids = set(input_ids_flat)
     print("# uniq tokens in dataset:", len(uniq_ids), flush=True)
